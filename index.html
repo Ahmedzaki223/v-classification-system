@@ -7,6 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-analytics.js"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         * {
@@ -195,6 +196,70 @@
             --shift-button-active: #4CAF50;
         }
 
+        .quality-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .popup-content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            animation: popupFadeIn 0.5s ease-out;
+        }
+
+        [data-theme="dark"] .popup-content {
+            background: rgba(30, 30, 30, 0.95);
+            color: #fff;
+        }
+
+        .cat-gif {
+            width: 200px;
+            height: 200px;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            object-fit: cover;
+        }
+
+        .close-popup {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .close-popup:hover {
+            background: #45a049;
+        }
+
+        @keyframes popupFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
         [data-theme="dark"] {
             --background-color: #1a1a1a;
             --text-color: #ffffff;
@@ -229,6 +294,26 @@
             --shift-button-bg: #1a1a1a;
             --shift-button-hover: #2d2d2d;
             --shift-button-active: #4CAF50;
+        }
+
+        [data-theme="dark"] .boolean-option {
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .boolean-option:hover {
+            background: var(--hover-bg);
+        }
+
+        [data-theme="dark"] .boolean-option.selected {
+            background: var(--selected-bg);
+        }
+
+        [data-theme="dark"] .accuracy-score {
+            background: linear-gradient(135deg, #2e7d32, #1b5e20);
+        }
+
+        [data-theme="dark"] .accuracy-score:contains("N/A") {
+            background: linear-gradient(135deg, #424242, #212121);
         }
 
         body {
@@ -393,8 +478,7 @@
             border-color: #007bff;
         }
         .option.selected-option {
-            background: #e3f2fd;
-            border-color: #2196f3;
+            background: var(--selected-bg);
         }
         .option input[type="radio"] {
             margin-right: 10px;
@@ -1061,6 +1145,39 @@
         .classification-scel2 { color: #FF0000; }
         .classification-scel3 { color: #FF0000; }
         .classification-scel4 { color: #FF0000; }
+        .boolean-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 5px;
+        }
+        .boolean-option:hover {
+            background: var(--hover-bg);
+        }
+        .boolean-option.selected {
+            background: var(--selected-bg);
+        }
+        .boolean-option input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        .accuracy-score {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            display: inline-block;
+            min-width: 60px;
+            text-align: center;
+        }
+        .accuracy-score:contains("N/A") {
+            background: linear-gradient(135deg, #9e9e9e, #757575);
+        }
     </style>
 </head>
 <body>
@@ -5509,7 +5626,8 @@
             isAdmin: false,
             users: [],
             submissions: [],
-            currentAnswers: {}
+            currentAnswers: {},
+            accuracyData: {} // لتخزين بيانات Accuracy من Google Sheets
         };
 
         // Admin credentials
@@ -5566,6 +5684,8 @@
             // Load initial data
             loadUsers();
             loadSubmissions();
+            loadAccuracyData(); // تحميل بيانات Accuracy من Google Sheets
+            startAccuracyUpdateInterval(); // بدء التحديث التلقائي
 
             // Event listeners
             document.getElementById('login-btn').addEventListener('click', handleLogin);
@@ -5631,7 +5751,8 @@
                     return {
                         id: doc.id,
                         ...data,
-                        date: data.date.toDate() // Convert Firestore timestamp to Date
+                        date: data.date.toDate(), // Convert Firestore timestamp to Date
+                        accuracy: getAccuracyForTask(data.taskId) // إضافة Accuracy
                     };
                 });
             } catch (error) {
@@ -5639,6 +5760,262 @@
                 alert("Error loading submissions. Please try again.");
             }
         }
+
+        // Google Sheets Functions
+        function loadAccuracyData() {
+            console.log('Loading accuracy data...');
+            
+            // مؤقتاً: إضافة بيانات تجريبية للاختبار
+            // يمكن استبدالها لاحقاً بـ Google Sheets API
+            state.accuracyData = {
+                'ABC123': '85%',
+                'DEF456': '92%',
+                'GHI789': '78%',
+                'JKL012': '95%',
+                'MNO345': '88%',
+                'PQR678': '91%',
+                'STU901': '87%',
+                'VWX234': '93%',
+                'YZA567': '82%',
+                'BCD890': '89%'
+            };
+            
+            console.log('Accuracy data loaded:', state.accuracyData);
+            
+            // تحديث التقديمات الموجودة
+            if (state.submissions.length > 0) {
+                state.submissions.forEach(sub => {
+                    sub.accuracy = getAccuracyForTask(sub.taskId);
+                });
+            }
+        }
+
+        // Initialize Google Sheets API
+        async function initGoogleSheetsAPI() {
+            try {
+                console.log('Starting Google Sheets API initialization...');
+                
+                // Check if gapi is available
+                if (typeof gapi === 'undefined') {
+                    console.error('Google API client (gapi) is not loaded');
+                    return;
+                }
+
+                // Wait for gapi.client to be available
+                if (!gapi.client) {
+                    console.log('Waiting for gapi.client to be available...');
+                    await new Promise(resolve => {
+                        gapi.load('client', resolve);
+                    });
+                }
+
+                console.log('Initializing gapi.client...');
+                await gapi.client.init({
+                    apiKey: 'AIzaSyBVoVWGNGqHXUkDuK9oUPuX_QZZtDgpVoE',
+                    clientId: '1094461669104-4q2h3b3h84nscv7viv0obpm7jr9edin1.apps.googleusercontent.com',
+                    discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+                    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly'
+                });
+                console.log('Google client initialized successfully');
+
+                // Add a small delay to ensure initialization is complete
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Load the sheets API
+                if (!gapi.client.sheets) {
+                    console.log('Loading sheets API...');
+                    await gapi.client.load('sheets', 'v4');
+                    console.log('Sheets API loaded successfully');
+                } else {
+                    console.log('Sheets API already loaded');
+                }
+                
+                // Add another small delay before loading data
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Load initial accuracy data
+                await loadAccuracyData();
+                console.log('Initial accuracy data loaded');
+            } catch (error) {
+                console.error('Error during Google Sheets API initialization:', error);
+                // Try to provide more detailed error information
+                if (error.result && error.result.error) {
+                    console.error('API Error details:', error.result.error);
+                }
+            }
+        }
+
+        // Load gapi on page load
+        window.addEventListener('load', function() {
+            const script = document.createElement('script');
+            script.src = 'https://apis.google.com/js/api.js';
+            script.onload = function() {
+                console.log('Google API client loaded');
+                initGoogleSheetsAPI();
+            };
+            script.onerror = function() {
+                console.error('Failed to load Google API client');
+            };
+            document.body.appendChild(script);
+        });
+
+        // Load model answers and metrics from Google Sheet
+        async function loadAccuracyData() {
+            try {
+                console.log('Starting to load accuracy data...');
+                
+                // Make sure the client is initialized and signed in
+                if (!gapi.client?.sheets) {
+                    console.log('Google Sheets API not initialized, initializing now...');
+                    try {
+                        await gapi.client.load('sheets', 'v4');
+                        console.log('Google Sheets API initialized successfully');
+                    } catch (initError) {
+                        console.error('Failed to initialize Google Sheets API:', initError);
+                        return;
+                    }
+                }
+
+                const SPREADSHEET_ID = '10LZ2HxQ7V1O4sG6-78kDf6CgUKcB36MMtAAHHt2otOw';
+                const RANGE = 'Sheet1!A:F'; // Include columns for GULP Link, TP, FP, FN, TN
+
+                console.log('Fetching data from sheet:', SPREADSHEET_ID);
+                let response;
+                try {
+                    response = await gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: RANGE,
+                        valueRenderOption: 'UNFORMATTED_VALUE'
+                    });
+                    console.log('Successfully fetched data from sheet');
+                } catch (fetchError) {
+                    console.error('Failed to fetch data from sheet:', fetchError);
+                    if (fetchError.status === 401) {
+                        console.log('Authentication error detected, attempting to reinitialize...');
+                        await initGoogleSheetsAPI();
+                        return;
+                    }
+                    return;
+                }
+
+                const rows = response.result.values;
+                if (!rows || rows.length === 0) {
+                    console.error('No data found in sheet');
+                    return;
+                }
+
+                console.log(`Found ${rows.length} rows in sheet`);
+                state.accuracyData = {};
+                let processedCount = 0;
+                let errorCount = 0;
+                
+                // Skip header row
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length < 5) {
+                        console.log(`Skipping incomplete row ${i}: insufficient columns`);
+                        continue;
+                    }
+
+                    const [gulpLink, tp, fp, fn, tn] = row;
+                    if (!gulpLink) {
+                        console.log(`Skipping row ${i}: missing GULP link`);
+                        continue;
+                    }
+
+                    try {
+                        // Convert metrics to numbers and handle invalid values
+                        const metrics = {
+                            tp: Number(tp),
+                            fp: Number(fp),
+                            fn: Number(fn),
+                            tn: Number(tn)
+                        };
+
+                        // Log raw values for debugging
+                        console.log(`Row ${i} raw values:`, {
+                            gulpLink,
+                            metrics,
+                            rawTP: tp,
+                            rawFP: fp,
+                            rawFN: fn,
+                            rawTN: tn
+                        });
+                        
+                        // Calculate accuracy
+                        const accuracy = calculateAccuracy(metrics);
+                        state.accuracyData[gulpLink] = accuracy + '%';
+                        console.log(`Successfully processed ${gulpLink}: ${accuracy}%`);
+                        processedCount++;
+                    } catch (err) {
+                        console.error(`Error processing row ${i}:`, err);
+                        errorCount++;
+                    }
+                }
+
+                console.log(`Accuracy data loading complete:\n` +
+                           `- Total rows processed: ${rows.length - 1}\n` +
+                           `- Successfully processed: ${processedCount}\n` +
+                           `- Errors encountered: ${errorCount}`);
+                           
+                // Update UI if needed
+                if (typeof updateSubmissionsList === 'function') {
+                    updateSubmissionsList();
+                }
+            } catch (error) {
+                console.error('Fatal error in loadAccuracyData:', error);
+            }
+        }
+
+        // Calculate accuracy based on TP, FP, FN, TN
+        function calculateAccuracy(metrics) {
+            const { tp = 0, fp = 0, fn = 0, tn = 0 } = metrics;
+            
+            // Ensure all values are valid numbers
+            const validTp = Number(tp) || 0;
+            const validFp = Number(fp) || 0;
+            const validFn = Number(fn) || 0;
+            const validTn = Number(tn) || 0;
+            
+            // Calculate total predictions
+            const total = validTp + validTn + validFp + validFn;
+            if (total === 0) return 0;
+            
+            // Calculate overall accuracy
+            const accuracy = ((validTp + validTn) / total) * 100;
+            
+            // Return rounded accuracy, ensuring it's a valid number
+            return isNaN(accuracy) ? 0 : Math.round(accuracy);
+        }
+
+        // Get accuracy for a specific task
+        function getAccuracyForTask(taskId) {
+            if (!taskId || taskId.trim() === '') {
+                return 'N/A';
+            }
+
+            return state.accuracyData[taskId] || 'N/A';
+        }
+
+        // Update accuracy data every 5 minutes
+        function startAccuracyUpdateInterval() {
+            // Load initial data
+            loadAccuracyData();
+
+            // Update every 5 minutes
+            setInterval(() => {
+                loadAccuracyData();
+                // Update existing submissions
+                if (state.submissions.length > 0) {
+                    state.submissions.forEach(sub => {
+                        sub.accuracy = getAccuracyForTask(sub.taskId);
+                    });
+                }
+            }, 5 * 60 * 1000);
+        }
+
+        // Initialize Google Sheets API when the page loads
+        gapi.load('client', initGoogleSheetsAPI);
 
         async function saveUser(user) {
             try {
@@ -5813,6 +6190,7 @@
                     <p><strong>GULP Link:</strong> ${sub.taskId}</p>
                     <p><strong>Date:</strong> ${sub.date.toLocaleString()}</p>
                     <p><strong>Classification:</strong> ${sub.classification}</p>
+                    <p><strong>Accuracy:</strong> <span class="accuracy-score">${sub.accuracy || getAccuracyForTask(sub.taskId)}</span></p>
                     <button onclick="viewSubmissionDetails('${sub.id}')">View Details</button>
                     <button onclick="downloadSubmission('${sub.id}')">Download</button>
                 `;
@@ -5821,6 +6199,21 @@
             
             userSubmissionsView.classList.remove('hidden');
             document.getElementById('submission-details-view').classList.add('hidden');
+        }
+
+        // دالة لحساب متوسط Accuracy للمستخدم
+        function calculateAverageAccuracy(submissions) {
+            if (submissions.length === 0) return 'N/A';
+            
+            const accuracies = submissions.map(sub => {
+                const accuracy = getAccuracyForTask(sub.taskId);
+                return accuracy === 'N/A' ? 0 : parseInt(accuracy.replace('%', ''));
+            }).filter(acc => acc > 0);
+            
+            if (accuracies.length === 0) return 'N/A';
+            
+            const average = accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length;
+            return Math.round(average) + '%';
         }
 
         function viewSubmissionDetails(submissionId) {
@@ -5842,6 +6235,7 @@
                 <p><strong>User:</strong> ${submission.user.name} (${submission.user.shift})</p>
                 <p><strong>Date:</strong> ${submission.date.toLocaleString()}</p>
                 <p><strong>Final Classification:</strong> ${submission.classification}</p>
+                <p><strong>Accuracy:</strong> <span class="accuracy-score">${submission.accuracy || getAccuracyForTask(submission.taskId)}</span></p>
                 <hr>
             `;
             classificationReconstruction.appendChild(header);
@@ -5920,6 +6314,14 @@
                 }
             }
             
+            // معالجة الأسئلة من نوع boolean (checkboxes)
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                const questionText = checkbox.parentElement.textContent.trim();
+                if (checkbox.checked) {
+                    state.currentAnswers[questionText] = 'Yes';
+                }
+            });
+            
             document.querySelectorAll('.text-input').forEach(input => {
                 const questionId = input.id || input.parentElement.querySelector('.question')?.textContent.trim();
                 if (input.value.trim()) {
@@ -5954,8 +6356,42 @@
 
                 const submissionId = await saveSubmission(submission);
                 submission.id = submissionId;
+                submission.accuracy = getAccuracyForTask(state.currentTask); // إضافة Accuracy
                 state.submissions.push(submission);
 
+                // تحديث البيانات في الوقت الفعلي
+                if (!state.accuracyData[state.currentTask]) {
+                    state.accuracyData[state.currentTask] = submission.accuracy;
+                }
+
+                // Show custom popup with cat GIF based on accuracy
+                const accuracy = getAccuracyForTask(state.currentTask);
+                const popupContent = document.createElement('div');
+                popupContent.className = 'quality-popup';
+                
+                // Select GIF based on accuracy
+                let catGifUrl = '';
+                if (accuracy >= 80) {
+                    catGifUrl = 'https://media.giphy.com/media/BzyTuYCmvSORqs1ABM/giphy.gif'; // Happy cat
+                } else if (accuracy >= 50) {
+                    catGifUrl = 'https://media.giphy.com/media/13HXKG2HGN8aPK/giphy.gif'; // Cat driving
+                } else {
+                    catGifUrl = 'https://media.giphy.com/media/H4DjXQXamtTiIuCcRU/giphy.gif'; // Sad/angry cat
+                }
+                
+                popupContent.innerHTML = `
+                    <div class="popup-content">
+                        <img src="${catGifUrl}" alt="Cat reaction" class="cat-gif">
+                        <h3>Submission Successful! 🎉</h3>
+                        <p><strong>Task ID:</strong> ${state.currentTask}</p>
+                        <p><strong>Classification:</strong> ${submission.classification}</p>
+                        <p><strong>Accuracy:</strong> ${accuracy}%</p>
+                        <button onclick="this.parentElement.parentElement.remove()" class="close-popup">Close</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(popupContent);
+                
                 showSubmissionsPanel();
             } catch (error) {
                 console.error("Error submitting classification:", error);
@@ -5998,6 +6434,8 @@
                     <p><strong>GULP Link:</strong> ${sub.taskId}</p>
                     <p><strong>Date:</strong> ${sub.date.toLocaleString()}</p>
                     <p><strong>Classification:</strong> ${sub.classification}</p>
+                    <p><strong>Accuracy:</strong> <span class="accuracy-score">${sub.accuracy || getAccuracyForTask(sub.taskId)}</span></p>
+                    <button onclick="viewSubmissionDetails('${sub.id}')">View Details</button>
                     <button onclick="downloadSubmission('${sub.id}')">Download</button>
                 `;
                 submissionsList.appendChild(subElement);
@@ -6106,6 +6544,21 @@
                     });
                     nodeElement.appendChild(optionsElement);
                 }
+                // Render boolean node as checkbox
+                else if (node.nodeType === 'boolean') {
+                    const checkboxElement = document.createElement('div');
+                    checkboxElement.className = 'boolean-option';
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = node.id;
+                    checkbox.name = node.id;
+                    checkbox.addEventListener('change', () => {
+                        this.handleBooleanSelection(checkbox, node);
+                    });
+                    checkboxElement.appendChild(checkbox);
+                    checkboxElement.appendChild(document.createTextNode(' ' + node.displayName));
+                    nodeElement.appendChild(checkboxElement);
+                }
                 // Render free text input
                 else if (node.nodeType === 'freeText') {
                     const inputElement = document.createElement('textarea');
@@ -6139,6 +6592,15 @@
                 messageElement.className = 'terminal-message';
                 messageElement.textContent = `✓ ${selectedNode.displayName}`;
                 optionElement.parentElement.appendChild(messageElement);
+            }
+        }
+
+        handleBooleanSelection(checkbox, node) {
+            // معالجة اختيار الأسئلة من نوع boolean
+            if (checkbox.checked) {
+                checkbox.parentElement.classList.add('selected');
+            } else {
+                checkbox.parentElement.classList.remove('selected');
             }
         }
     }
