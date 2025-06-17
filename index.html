@@ -1135,7 +1135,7 @@
     <div id="task-panel" class="panel hidden">
         <h2>Task Information</h2>
         <div class="form-group">
-            <label for="task-id">Task ID:</label>
+            <label for="task-id">GULP Link:</label>
             <input type="text" id="task-id" placeholder="Enter task ID">
         </div>
         <button id="start-task-btn">Start Task</button>
@@ -5810,7 +5810,7 @@
                 const subElement = document.createElement('div');
                 subElement.className = 'submission';
                 subElement.innerHTML = `
-                    <p><strong>Task ID:</strong> ${sub.taskId}</p>
+                    <p><strong>GULP Link:</strong> ${sub.taskId}</p>
                     <p><strong>Date:</strong> ${sub.date.toLocaleString()}</p>
                     <p><strong>Classification:</strong> ${sub.classification}</p>
                     <button onclick="viewSubmissionDetails('${sub.id}')">View Details</button>
@@ -5838,7 +5838,7 @@
             
             const header = document.createElement('div');
             header.innerHTML = `
-                <h4>Submission Details - Task ID: ${submission.taskId}</h4>
+                <h4>Submission Details - GULP Link: ${submission.taskId}</h4>
                 <p><strong>User:</strong> ${submission.user.name} (${submission.user.shift})</p>
                 <p><strong>Date:</strong> ${submission.date.toLocaleString()}</p>
                 <p><strong>Final Classification:</strong> ${submission.classification}</p>
@@ -5881,7 +5881,7 @@
             hideAllPanels();
             classificationPanel.style.display = 'block';
             currentUserDisplay.textContent = `User: ${state.currentUser.name} (${state.currentUser.shift}) - Flash: ${state.currentUser.flashNumber || 'Not provided'}`;
-            currentTaskDisplay.textContent = `Task ID: ${state.currentTask}`;
+            currentTaskDisplay.textContent = `GULP Link: ${state.currentTask}`;
             submitBtn.style.display = 'block';
             
             document.getElementById('tree-container').innerHTML = '';
@@ -5995,7 +5995,7 @@
                 const subElement = document.createElement('div');
                 subElement.className = 'submission';
                 subElement.innerHTML = `
-                    <p><strong>Task ID:</strong> ${sub.taskId}</p>
+                    <p><strong>GULP Link:</strong> ${sub.taskId}</p>
                     <p><strong>Date:</strong> ${sub.date.toLocaleString()}</p>
                     <p><strong>Classification:</strong> ${sub.classification}</p>
                     <button onclick="downloadSubmission('${sub.id}')">Download</button>
