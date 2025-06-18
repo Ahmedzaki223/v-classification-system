@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -415,12 +416,33 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        input[type="text"], input[type="password"], textarea, select {
+        input[type="text"], input[type="password"], input[type="date"], textarea, select {
             width: 100%;
             padding: 8px;
             box-sizing: border-box;
             border: 1px solid #ddd;
             border-radius: 4px;
+        }
+        
+        /* أنماط فلتر التاريخ */
+        .date-filter-container {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #eee;
+        }
+        
+        .date-filter {
+            width: auto;
+            min-width: 150px;
+            margin-right: 10px;
+        }
+        
+        .custom-date {
+            width: auto;
+            min-width: 150px;
+            display: inline-block;
         }
         button {
             background: #4CAF50;
@@ -1320,28 +1342,88 @@
 
     <script>
         // ==============================================
-        // === Firebase Configuration ===================
+        // === Firebase Configurations ==================
         // ==============================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyDNS2qvjp7vbiw0VdHC7E0ETOwxs7ix00A",
-            authDomain: "usl641.firebaseapp.com",
-            projectId: "usl641",
-            storageBucket: "usl641.firebasestorage.app",
-            messagingSenderId: "299850509344",
-            appId: "1:299850509344:web:0a068e424dd3d936776045",
-            measurementId: "G-H72XNL4L1W"
+        const firebaseConfigs = {
+            Morning: {
+                apiKey: "AIzaSyBQqBfBTb6eShtVNt-AJr9vL_bUo4HRkWs",
+                authDomain: "metiusl.firebaseapp.com",
+                projectId: "metiusl",
+                storageBucket: "metiusl.firebasestorage.app",
+                messagingSenderId: "577467713132",
+                appId: "1:577467713132:web:55810c5e647cf35c9a7a49",
+                measurementId: "G-16FKS5WMYG"
+            },
+            Night: {
+                apiKey: "AIzaSyD3cdN8HzaRJC1qS-tsMbqG0vC_tyXLvZQ",
+                authDomain: "meti12.firebaseapp.com",
+                projectId: "meti12",
+                storageBucket: "meti12.firebasestorage.app",
+                messagingSenderId: "833651683437",
+                appId: "1:833651683437:web:bb39e49b839b102cbc8f64",
+                measurementId: "G-J5SK35N2VF"
+            },
+            Overnight: {
+                apiKey: "AIzaSyDNS2qvjp7vbiw0VdHC7E0ETOwxs7ix00A",
+                authDomain: "usl641.firebaseapp.com",
+                projectId: "usl641",
+                storageBucket: "usl641.firebasestorage.app",
+                messagingSenderId: "299850509344",
+                appId: "1:299850509344:web:0a068e424dd3d936776045",
+                measurementId: "G-H72XNL4L1W"
+            }
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const analytics = firebase.analytics();
+        let currentShift = null;
+        let db, auth, analytics;
 
-        // Make Firebase available globally
-        window.db = db;
-        window.auth = auth;
-        window.firebase = firebase;
+        // Function to initialize Firebase for a specific shift
+        async function initializeFirebaseForShift(shift) {
+            return new Promise(async (resolve, reject) => {
+                const config = firebaseConfigs[shift];
+                if (!config) {
+                    console.error(`Firebase config for shift '${shift}' not found.`);
+                    reject(new Error(`Firebase config for shift '${shift}' not found.`));
+                    return;
+                }
+
+                try {
+                    // Delete existing app instance if it exists
+                    if (firebase.apps.length > 0) {
+                        console.log("Deleting previous Firebase app instance...");
+                        await firebase.app().delete();
+                        console.log("Previous Firebase app deleted.");
+                    }
+                } catch (error) {
+                    console.error("Error deleting previous Firebase app:", error);
+                    // Continue, as initialization might still work or fix a bad state
+                }
+
+                try {
+                    console.log(`Initializing Firebase for ${shift} shift with project ID: ${config.projectId}...`);
+                    const app = firebase.initializeApp(config);
+                    db = firebase.firestore(); // Uses the most recently initialized app
+                    auth = firebase.auth();
+                    analytics = firebase.analytics();
+                    
+                    // Make Firebase available globally
+                    window.db = db;
+                    window.auth = auth;
+                    window.firebase = firebase; // window.firebase will point to the firebase namespace
+                    
+                    currentShift = shift;
+                    console.log(`Firebase initialized successfully for ${shift} shift.`);
+                    resolve();
+                } catch (error) {
+                    console.error(`Error initializing Firebase for ${shift} shift:`, error);
+                    db = null; // Ensure db is null if initialization fails
+                    auth = null;
+                    analytics = null;
+                    currentShift = null;
+                    reject(error);
+                }
+            });
+        }
 
         // ==============================================
         // === Decision Tree JSON =======================
@@ -5657,8 +5739,41 @@
         const submitBtn = document.getElementById('submit-btn');
         const userDropdown = document.getElementById('user-dropdown');
 
+        // Initialize shift buttons
+        document.querySelectorAll('.shift-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                document.querySelectorAll('.shift-btn').forEach(btn => btn.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Get selected shift
+                const selectedShift = this.dataset.shift;
+                
+                // Initialize Firebase for selected shift
+                initializeFirebaseForShift(selectedShift);
+                
+                // Enable and populate user dropdown
+                const userDropdown = document.getElementById('user-dropdown');
+                userDropdown.disabled = false;
+                userDropdown.innerHTML = '<option value="">Select your name</option>';
+                
+                // Add users for selected shift
+                usersByShift[selectedShift].forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.name;
+                    option.textContent = user.name;
+                    userDropdown.appendChild(option);
+                });
+            });
+        });
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Firebase with Overnight shift by default
+            initializeFirebaseForShift('Overnight');
+            
             // Check authentication state
             auth.onAuthStateChanged(user => {
                 if (user) {
@@ -5745,20 +5860,41 @@
 
         async function loadSubmissions() {
             try {
+                // تحميل التسليمات من Firestore
                 const snapshot = await db.collection("submissions").get();
                 state.submissions = snapshot.docs.map(doc => {
                     const data = doc.data();
                     return {
                         id: doc.id,
                         ...data,
-                        date: data.date.toDate(), // Convert Firestore timestamp to Date
-                        accuracy: getAccuracyForTask(data.taskId) // إضافة Accuracy
+                        date: data.date.toDate(), // تحويل طابع الوقت من Firestore إلى كائن Date
+                        accuracy: getAccuracyForTask(data.taskId), // إضافة الدقة
+                        // إضافة معلومات التاريخ المنسقة للفلترة
+                        dateString: data.date.toDate().toLocaleDateString('en-US'),
+                        dateFormatted: formatDate(data.date.toDate())
                     };
                 });
+                console.log(`Loaded ${state.submissions.length} submissions`);
             } catch (error) {
                 console.error("Error loading submissions:", error);
                 alert("Error loading submissions. Please try again.");
             }
+        }
+        
+        // دالة مساعدة لتنسيق التاريخ بتنسيق "YYYY-MM-DD"
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // دالة مساعدة للتحقق مما إذا كان التاريخ هو اليوم
+        function isToday(date) {
+            const today = new Date();
+            return date.getDate() === today.getDate() &&
+                   date.getMonth() === today.getMonth() &&
+                   date.getFullYear() === today.getFullYear();
         }
 
         // Google Sheets Functions
@@ -6334,14 +6470,22 @@
 
         async function submitClassification(e) {
             e.preventDefault();
+
+            const submitButton = e.target; // Define earlier to use in case of early return
+            const originalText = submitButton.textContent;
             
             if (!collectAnswers()) {
                 alert('Please complete all required questions before submitting');
-                    return;
-                }
+                return;
+            }
 
-            const submitButton = e.target;
-            const originalText = submitButton.textContent;
+            if (!db || !currentShift) {
+                alert("Firebase is not properly initialized for the current shift. Please select your shift again and wait for confirmation.");
+                console.error("SubmitClassification: Firebase not ready. Current DB state:", db, "Current shift:", currentShift);
+                // No need to disable/re-enable button here as it's not yet disabled for submission
+                return;
+            }
+
             submitButton.disabled = true;
             submitButton.innerHTML = `Submitting <span class="loading"></span>`;
 
@@ -6349,7 +6493,7 @@
                 const submission = {
                     user: state.currentUser,
                     taskId: state.currentTask,
-                    date: new Date(),
+                    date: new Date(), // This will be client's date, Firestore serverTimestamp is better for consistency
                     answers: state.currentAnswers,
                     classification: getFinalClassification()
                 };
@@ -6414,19 +6558,81 @@
             hideAllPanels();
             submissionsPanel.style.display = 'block';
             
-            // Reload user's submissions to ensure we have the latest
+            // إعادة تحميل تسليمات المستخدم للتأكد من أنها محدثة
             await loadSubmissions();
             
-            submissionsList.innerHTML = '';
-            const userSubmissions = state.submissions
-                .filter(sub => sub.user.name === state.currentUser.name)
-                .sort((a, b) => b.date - a.date);
+            // إضافة فلتر التاريخ إذا لم يكن موجودًا بالفعل
+            if (!document.getElementById('date-filter-container')) {
+                const filterContainer = document.createElement('div');
+                filterContainer.id = 'date-filter-container';
+                filterContainer.className = 'date-filter-container';
+                filterContainer.innerHTML = `
+                    <div class="form-group">
+                        <label for="date-filter">Filter by date:</label>
+                        <select id="date-filter" class="date-filter">
+                            <option value="today" selected>Today only</option>
+                            <option value="all">All dates</option>
+                            <option value="custom">Select date...</option>
+                        </select>
+                        <input type="date" id="custom-date" class="custom-date" style="display: none;">
+                    </div>
+                `;
                 
+                // إضافة الفلتر قبل قائمة التسليمات
+                submissionsPanel.insertBefore(filterContainer, submissionsList);
+                
+                // إضافة مستمعي الأحداث للفلتر
+                const dateFilter = document.getElementById('date-filter');
+                const customDate = document.getElementById('custom-date');
+                
+                dateFilter.addEventListener('change', function() {
+                    if (this.value === 'custom') {
+                        customDate.style.display = 'inline-block';
+                        // تعيين التاريخ الافتراضي إلى اليوم
+                        const today = new Date();
+                        customDate.value = formatDate(today);
+                    } else {
+                        customDate.style.display = 'none';
+                    }
+                    filterSubmissions();
+                });
+                
+                customDate.addEventListener('change', filterSubmissions);
+            }
+            
+            // تطبيق الفلتر وعرض التسليمات
+            filterSubmissions();
+        }
+        
+        // دالة لفلترة وعرض التسليمات بناءً على الفلتر المحدد
+        function filterSubmissions() {
+            const dateFilter = document.getElementById('date-filter');
+            const customDate = document.getElementById('custom-date');
+            const filterValue = dateFilter.value;
+            
+            submissionsList.innerHTML = '';
+            
+            // فلترة التسليمات بناءً على المستخدم الحالي
+            let userSubmissions = state.submissions
+                .filter(sub => sub.user.name === state.currentUser.name);
+            
+            // فلترة إضافية بناءً على التاريخ المحدد
+            if (filterValue === 'today') {
+                userSubmissions = userSubmissions.filter(sub => isToday(sub.date));
+            } else if (filterValue === 'custom' && customDate.value) {
+                const selectedDate = customDate.value; // بتنسيق YYYY-MM-DD
+                userSubmissions = userSubmissions.filter(sub => sub.dateFormatted === selectedDate);
+            }
+            
+            // ترتيب التسليمات من الأحدث إلى الأقدم
+            userSubmissions.sort((a, b) => b.date - a.date);
+            
             if (userSubmissions.length === 0) {
-                submissionsList.innerHTML = '<p>No submissions found.</p>';
+                submissionsList.innerHTML = '<p>No submissions found for the selected date.</p>';
                 return;
             }
             
+            // عرض التسليمات المفلترة
             userSubmissions.forEach(sub => {
                 const subElement = document.createElement('div');
                 subElement.className = 'submission';
