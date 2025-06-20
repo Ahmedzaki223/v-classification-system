@@ -5743,7 +5743,7 @@
         const selectedUserInfo = document.getElementById('selected-user-info');
         const submissionsList = document.getElementById('submissions-list');
         const usernameInput = document.getElementById('username');
-        const flashNumberInput = document.getElementById('flash-number');
+        const flashValue = document.getElementById('flash-number').value.trim() || 'Not provided';
         const adminUsernameInput = document.getElementById('admin-username');
         const adminPasswordInput = document.getElementById('admin-password');
         const taskIdInput = document.getElementById('task-id');
@@ -6183,18 +6183,24 @@
 
         async function saveSubmission(submission) {
             try {
-                const docRef = await db.collection("submissions").add({
-                    ...submission,
-                    user: {
-                        name: submission.user.name,
-                        shift: submission.user.shift,
-                        flashNumber: submission.user.flashNumber
-                    },
-                    date: firebase.firestore.FieldValue.serverTimestamp(),
-                    classification: submission.classification,
-                    answers: submission.answers,
-                    taskId: submission.taskId
-                });
+                const flashInput = document.getElementById('flash-number');
+const flashNumber = flashInput ? flashInput.value.trim() : '';
+
+submission.user.flashNumber = flashNumber;
+
+const docRef = await db.collection("submissions").add({
+  ...submission,
+  user: {
+    name: submission.user.name,
+    shift: submission.user.shift,
+    flashNumber: submission.user.flashNumber // ✅ هياخد القيمة اللي أدخلها المستخدم
+  },
+  date: firebase.firestore.FieldValue.serverTimestamp(),
+  classification: submission.classification,
+  answers: submission.answers,
+  taskId: submission.taskId
+});
+
                 return docRef.id;
             } catch (error) {
                 console.error("Error saving submission:", error);
@@ -6415,21 +6421,24 @@
                 alert('Please enter a task ID');
                     return;
                 }
-
             state.currentTask = taskId;
             showClassificationPanel();
         }
 
         function showClassificationPanel() {
-            hideAllPanels();
-            classificationPanel.style.display = 'block';
-            currentUserDisplay.textContent = `User: ${state.currentUser.name} (${state.currentUser.shift}) - Flash: ${state.currentUser.flashNumber || 'Not provided'}`;
-            currentTaskDisplay.textContent = `GULP Link: ${state.currentTask}`;
-            submitBtn.style.display = 'block';
-            
-            document.getElementById('tree-container').innerHTML = '';
-            new DecisionTreeNavigator(decisionTree);
-        }
+    hideAllPanels();
+    classificationPanel.style.display = 'block';
+
+    const flashValue = document.getElementById('flash-number').value.trim() || 'Not provided';
+    currentUserDisplay.textContent = `User: ${state.currentUser.name} (${state.currentUser.shift}) - Flash: ${flashValue}`;
+
+    currentTaskDisplay.textContent = `GULP Link: ${state.currentTask}`;
+    submitBtn.style.display = 'block';
+
+    document.getElementById('tree-container').innerHTML = '';
+    new DecisionTreeNavigator(decisionTree);
+}
+
 
         function collectAnswers() {
             state.currentAnswers = {};
