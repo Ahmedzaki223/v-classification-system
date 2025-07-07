@@ -807,7 +807,7 @@
 
         /* Update form elements */
         .form-group {
-            background-color:
+            background-color: var(--container-bg);
         }
 
         label {
@@ -947,18 +947,6 @@
             color: var(--input-text) !important;
             border-color: var(--input-border) !important;
         }
-        
-        #pr-dashboard-btn {
-            background:#c14020 ;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-right: 10px;
-            margin-top: 10px;
-        }
-        
         #responder-dashboard-btn {
             background: #2196F3;
             color: white;
@@ -1304,8 +1292,7 @@
         </div>
         
         <button id="login-btn">Start Classification</button>
-        <button id="responder-dashboard-btn" onclick="window.open('https://script.google.com/macros/s/AKfycbwV5TFYA7TYy3FdESpmUO8BElxesOPnbB4Z-9rr7BbbBPMWo8A8k0F90cYGB5fKJNKOKQ/exec', '_blank')">Practice Dashboard</button>
-        <button id="pr-dashboard-btn" onclick="window.open('https://script.google.com/a/macros/meti.ai/s/AKfycbxN7B6HmzuvZg3uvcMi1Y36O_w2GdC2p9mQs9LoERNj0OndUypkbnb1F4ynvPxEhHR_/exec', '_blank')">Production Tracker</button>
+        <button id="responder-dashboard-btn" onclick="window.open('https://script.google.com/macros/s/AKfycbwV5TFYA7TYy3FdESpmUO8BElxesOPnbB4Z-9rr7BbbBPMWo8A8k0F90cYGB5fKJNKOKQ/exec', '_blank')">Responder Dashboard</button>
         
         <!-- Admin Login -->
         <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
@@ -1373,7 +1360,7 @@
                 <input type="date" id="date-filter">
             </div>
             <button id="apply-filters" class="secondary">Apply Filters</button>
-<button id="reset-filters" class="reset-filters back-to-users-btn">Reset</button>
+            <button id="reset-filters" class="">Reset</button>
         </div>
         
         <h3>All Users</h3>
@@ -5749,6 +5736,7 @@
                 { name: "Saleh Saad Aldin Moghazy Ahmed", flashNumber: "" },
                 { name: "Ziad Shaban ibrahim", flashNumber: "" },
                 { name: "Mohamed Osama Morsi Ahmed", flashNumber: "" },
+                { name: "Ali Rafat Serag Saad Eldeeb", flashNumber: "" },
                 { name: "Mazen Ahmed Hashem Hashem", flashNumber: "" },
                 { name: "Mahmoud mohamed elsawy", flashNumber: "" }
             ]
@@ -6358,8 +6346,7 @@ const docRef = await db.collection("submissions").add({
                     <td>${user.name}</td>
                     <td>${user.shift}</td>
                     <td>${userSubmissions.length}</td>
-                    <td><button onclick="viewUserSubmissions('${user.name}', '${dateFilter || ''}')">View Submissions</button></td>
-
+                    <td><button onclick="viewUserSubmissions('${user.name}')">View Submissions</button></td>
                 `;
                 usersList.querySelector('table').appendChild(row);
             });
@@ -6367,52 +6354,35 @@ const docRef = await db.collection("submissions").add({
             usersList.innerHTML += '</table>';
         }
 
-       function viewUserSubmissions(username, dateFilter = '') {
-    const user = state.users.find(u => u.name === username);
-    let userSubmissions = state.submissions.filter(s => s.user.name === username);
-
-    if (dateFilter) {
-        const filterDate = new Date(dateFilter);
-        userSubmissions = userSubmissions.filter(sub => {
-            const subDate = new Date(sub.date);
-            return subDate.toDateString() === filterDate.toDateString();
-        });
-    }
-
-    // Optional: Sort by date
-    userSubmissions.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    selectedUserInfo.innerHTML = `
-        <h4>User: ${user.name}</h4>
-        <p>Shift: ${user.shift}</p>
-        <p>Yubikey Number: ${user.flashNumber || 'Not provided'}</p>
-        <p>Total Submissions: ${userSubmissions.length}</p>
-    `;
-
-    adminSubmissionsList.innerHTML = '';
-
-    if (userSubmissions.length === 0) {
-        adminSubmissionsList.innerHTML = `<p>No submissions found for this date.</p>`;
-    } else {
-        userSubmissions.forEach(sub => {
-            const subElement = document.createElement('div');
-            subElement.className = 'submission';
-            subElement.innerHTML = `
-                <p><strong>GULP Link:</strong> ${sub.taskId}</p>
-                <p><strong>Date:</strong> ${new Date(sub.date).toLocaleString()}</p>
-                <p><strong>Classification:</strong> ${sub.classification}</p>
-                <p><strong>Accuracy:</strong> <span class="accuracy-score">${sub.accuracy || getAccuracyForTask(sub.taskId)}</span></p>
-                <button onclick="viewSubmissionDetails('${sub.id}')">View Details</button>
-                <button onclick="downloadSubmission('${sub.id}')">Download</button>
+        function viewUserSubmissions(username) {
+            const user = state.users.find(u => u.name === username);
+            const userSubmissions = state.submissions.filter(s => s.user.name === username);
+            
+            selectedUserInfo.innerHTML = `
+                <h4>User: ${user.name}</h4>
+                <p>Shift: ${user.shift}</p>
+                <p>Yubikey Number: ${user.flashNumber || 'Not provided'}</p>
+                <p>Total Submissions: ${userSubmissions.length}</p>
             `;
-            adminSubmissionsList.appendChild(subElement);
-        });
-    }
-
-    userSubmissionsView.classList.remove('hidden');
-    document.getElementById('submission-details-view').classList.add('hidden');
-}
-
+            
+            adminSubmissionsList.innerHTML = '';
+            userSubmissions.forEach(sub => {
+                const subElement = document.createElement('div');
+                subElement.className = 'submission';
+                subElement.innerHTML = `
+                    <p><strong>GULP Link:</strong> ${sub.taskId}</p>
+                    <p><strong>Date:</strong> ${sub.date.toLocaleString()}</p>
+                    <p><strong>Classification:</strong> ${sub.classification}</p>
+                    <p><strong>Accuracy:</strong> <span class="accuracy-score">${sub.accuracy || getAccuracyForTask(sub.taskId)}</span></p>
+                    <button onclick="viewSubmissionDetails('${sub.id}')">View Details</button>
+                    <button onclick="downloadSubmission('${sub.id}')">Download</button>
+                `;
+                adminSubmissionsList.appendChild(subElement);
+            });
+            
+            userSubmissionsView.classList.remove('hidden');
+            document.getElementById('submission-details-view').classList.add('hidden');
+        }
 
         // دالة لحساب متوسط Accuracy للمستخدم
         function calculateAverageAccuracy(submissions) {
@@ -6596,11 +6566,11 @@ const docRef = await db.collection("submissions").add({
                 // Select GIF based on accuracy
                 let catGifUrl = '';
                 if (accuracy >= 80) {
-                    catGifUrl = 'https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExbTI1NnI4Z2g5Y25uaWt5MGoweDE2emluZWZvaW8yazlvOTZnNjBicCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/BzyTuYCmvSORqs1ABM/giphy.gif'; // Happy cat
+                    catGifUrl = 'https://media.giphy.com/media/BzyTuYCmvSORqs1ABM/giphy.gif'; // Happy cat
                 } else if (accuracy >= 50) {
                     catGifUrl = 'https://media.giphy.com/media/13HXKG2HGN8aPK/giphy.gif'; // Cat driving
                 } else {
-                    catGifUrl = 'https://i.giphy.com/H4DjXQXamtTiIuCcRU.webp'; // Sad/angry cat
+                    catGifUrl = 'https://media.giphy.com/media/H4DjXQXamtTiIuCcRU/giphy.gif'; // Sad/angry cat
                 }
                 
                 popupContent.innerHTML = `
