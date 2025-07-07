@@ -425,7 +425,7 @@
         
         /* أنماط فلتر التاريخ */
         .date-filter-container {
-            background: var(--container-bg);
+            background: #f9f9f9;
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
@@ -651,32 +651,6 @@
             margin: 0 auto;
             padding: 20px;
         }
-
-.pagination-controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  margin: 15px 0;
-  font-weight: bold;
-}
-
-.pagination-controls button {
-  background-color: var(--btn-bg, #4CAF50);
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s ease;
-}
-
-.pagination-controls button:disabled {
-  background-color: #888;
-  cursor: not-allowed;
-}
-
 
         /* Update container styles */
         .tree-container,
@@ -1331,13 +1305,12 @@
     </div>
 
     <!-- User Submissions Panel -->
-   <div id="submissions-panel" class="panel hidden">
-    <h2>Your Submissions</h2>
-  
-    <div id="submissions-list"></div>
-  <button id="new-task-btn">Start New Task</button>
-  <button id="user-logout-btn" class="danger">Logout</button>
-</div>
+    <div id="submissions-panel" class="panel hidden">
+        <h2>Your Submissions</h2>
+        <div id="submissions-list"></div>
+        <button id="new-task-btn">Start New Task</button>
+        <button id="user-logout-btn" class="danger">Logout</button>
+    </div>
 
     <!-- Admin Panel -->
     <div id="admin-panel" class="panel hidden">
@@ -5735,7 +5708,6 @@
             "Overnight": [
                 { name: "Saleh Saad Aldin Moghazy Ahmed", flashNumber: "" },
                 { name: "Ziad Shaban ibrahim", flashNumber: "" },
-                { name: "Mohamed Osama Morsi Ahmed", flashNumber: "" },
                 { name: "Ali Rafat Serag Saad Eldeeb", flashNumber: "" },
                 { name: "Mazen Ahmed Hashem Hashem", flashNumber: "" },
                 { name: "Mahmoud mohamed elsawy", flashNumber: "" }
@@ -6580,7 +6552,6 @@ const docRef = await db.collection("submissions").add({
                         <p><strong>Task ID:</strong> ${state.currentTask}</p>
                         <p><strong>Classification:</strong> ${submission.classification}</p>
                         <p><strong>Accuracy:</strong> ${accuracy}%</p>
-                        <button id="responder-dashboard-btn" onclick="window.open('https://script.google.com/macros/s/AKfycbwV5TFYA7TYy3FdESpmUO8BElxesOPnbB4Z-9rr7BbbBPMWo8A8k0F90cYGB5fKJNKOKQ/exec', '_blank')">Responder Dashboard</button>
                         <button onclick="this.parentElement.parentElement.remove()" class="close-popup">Close</button>
                     </div>
                 `;
@@ -6605,156 +6576,99 @@ const docRef = await db.collection("submissions").add({
             return "No final classification determined";
         }
 
-       let currentSubmissionPage = 1;
-const submissionsPerPage = 5;
-let filteredSubmissions = [];
-
-async function showSubmissionsPanel() {
-    hideAllPanels();
-    submissionsPanel.style.display = 'block';
-
-    // تحميل التسليمات
-    await loadSubmissions();
-
-    // فلتر التاريخ إذا مش موجود
-    if (!document.getElementById('date-filter-container')) {
-        const filterContainer = document.createElement('div');
-        filterContainer.id = 'date-filter-container';
-        filterContainer.className = 'date-filter-container';
-        filterContainer.innerHTML = `
-            <div class="form-group">
-                <label for="date-filter">Filter by date:</label>
-                <select id="date-filter" class="date-filter">
-                    <option value="today" selected>Today only</option>
-                    <option value="all">All dates</option>
-                    <option value="custom">Select date...</option>
-                </select>
-                <input type="date" id="custom-date" class="custom-date" style="display: none;">
-                <button id="responder-dashboard-btn" onclick="window.open('https://script.google.com/macros/s/AKfycbwV5TFYA7TYy3FdESpmUO8BElxesOPnbB4Z-9rr7BbbBPMWo8A8k0F90cYGB5fKJNKOKQ/exec', '_blank')">Responder Dashboard</button>
-            </div>
-        `;
-
-        submissionsPanel.insertBefore(filterContainer, submissionsList);
-
-        const dateFilter = document.getElementById('date-filter');
-        const customDate = document.getElementById('custom-date');
-
-        dateFilter.addEventListener('change', function () {
-            if (this.value === 'custom') {
-                customDate.style.display = 'inline-block';
-                const today = new Date();
-                customDate.value = formatDate(today);
-            } else {
-                customDate.style.display = 'none';
+        async function showSubmissionsPanel() {
+            hideAllPanels();
+            submissionsPanel.style.display = 'block';
+            
+            // إعادة تحميل تسليمات المستخدم للتأكد من أنها محدثة
+            await loadSubmissions();
+            
+            // إضافة فلتر التاريخ إذا لم يكن موجودًا بالفعل
+            if (!document.getElementById('date-filter-container')) {
+                const filterContainer = document.createElement('div');
+                filterContainer.id = 'date-filter-container';
+                filterContainer.className = 'date-filter-container';
+                filterContainer.innerHTML = `
+                    <div class="form-group">
+                        <label for="date-filter">Filter by date:</label>
+                        <select id="date-filter" class="date-filter">
+                            <option value="today" selected>Today only</option>
+                            <option value="all">All dates</option>
+                            <option value="custom">Select date...</option>
+                        </select>
+                        <input type="date" id="custom-date" class="custom-date" style="display: none;">
+                    </div>
+                `;
+                
+                // إضافة الفلتر قبل قائمة التسليمات
+                submissionsPanel.insertBefore(filterContainer, submissionsList);
+                
+                // إضافة مستمعي الأحداث للفلتر
+                const dateFilter = document.getElementById('date-filter');
+                const customDate = document.getElementById('custom-date');
+                
+                dateFilter.addEventListener('change', function() {
+                    if (this.value === 'custom') {
+                        customDate.style.display = 'inline-block';
+                        // تعيين التاريخ الافتراضي إلى اليوم
+                        const today = new Date();
+                        customDate.value = formatDate(today);
+                    } else {
+                        customDate.style.display = 'none';
+                    }
+                    filterSubmissions();
+                });
+                
+                customDate.addEventListener('change', filterSubmissions);
             }
+            
+            // تطبيق الفلتر وعرض التسليمات
             filterSubmissions();
-        });
-
-        customDate.addEventListener('change', filterSubmissions);
-    }
-
-    filterSubmissions();
-}
-
-function filterSubmissions() {
-    const dateFilter = document.getElementById('date-filter');
-    const customDate = document.getElementById('custom-date');
-    const filterValue = dateFilter.value;
-
-    submissionsList.innerHTML = '';
-
-    let userSubmissions = state.submissions.filter(sub => sub.user.name === state.currentUser.name);
-
-    if (filterValue === 'today') {
-        userSubmissions = userSubmissions.filter(sub => isToday(sub.date));
-    } else if (filterValue === 'custom' && customDate.value) {
-        const selectedDate = customDate.value;
-        userSubmissions = userSubmissions.filter(sub => sub.dateFormatted === selectedDate);
-    }
-
-    userSubmissions.sort((a, b) => b.date - a.date);
-    filteredSubmissions = userSubmissions;
-    currentSubmissionPage = 1;
-
-    renderSubmissionPage();
-}
-
-function renderSubmissionPage() {
-    submissionsList.innerHTML = '';
-
-    if (filteredSubmissions.length === 0) {
-        submissionsList.innerHTML = '<p>No submissions found for the selected date.</p>';
-        removePaginationControls();
-        return;
-    }
-
-    // ✅ حساب عدد الصفحات الكلي
-    const totalPages = Math.ceil(filteredSubmissions.length / submissionsPerPage);
-
-    // ✅ التأكد من أن الصفحة الحالية ضمن النطاق
-    if (currentSubmissionPage > totalPages) currentSubmissionPage = totalPages || 1;
-
-    // ✅ حساب الفهرسة لبدء ونهاية الصفحة
-    const start = (currentSubmissionPage - 1) * submissionsPerPage;
-    const pageItems = filteredSubmissions.slice(start, start + submissionsPerPage);
-
-    // ✅ عرض عناصر الصفحة
-    pageItems.forEach(sub => {
-        const subElement = document.createElement('div');
-        subElement.className = 'submission';
-        subElement.innerHTML = `
-            <p><strong>GULP Link:</strong> ${sub.taskId}</p>
-            <p><strong>Date:</strong> ${sub.date.toLocaleString()}</p>
-            <p><strong>Classification:</strong> ${sub.classification}</p>
-            <p><strong>Accuracy:</strong> <span class="accuracy-score">${sub.accuracy || getAccuracyForTask(sub.taskId)}</span></p>
-            <button onclick="viewSubmissionDetails('${sub.id}')">View Details</button>
-            <button onclick="downloadSubmission('${sub.id}')">Download</button>
-        `;
-        submissionsList.appendChild(subElement);
-    });
-
-    // ✅ عرض أزرار الصفحة
-    renderPaginationControls(totalPages);
-}
-
-
-function renderPaginationControls() {
-    removePaginationControls();
-
-    const totalPages = Math.ceil(filteredSubmissions.length / submissionsPerPage);
-    if (totalPages <= 1) return;
-
-    const pagination = document.createElement("div");
-    pagination.id = "pagination-controls";
-    pagination.className = "pagination-controls";
-    pagination.innerHTML = `
-        <button onclick="prevSubmissionPage()" ${currentSubmissionPage === 1 ? 'disabled' : ''}>Previous</button>
-        <span>Page ${currentSubmissionPage} of ${totalPages}</span>
-        <button onclick="nextSubmissionPage()" ${currentSubmissionPage === totalPages ? 'disabled' : ''}>Next</button>
-    `;
-
-submissionsPanel.insertBefore(pagination, document.getElementById("new-task-btn"));
-}
-
-function removePaginationControls() {
-    const existing = document.getElementById("pagination-controls");
-    if (existing) existing.remove();
-}
-
-function nextSubmissionPage() {
-    const totalPages = Math.ceil(filteredSubmissions.length / submissionsPerPage);
-    if (currentSubmissionPage < totalPages) {
-        currentSubmissionPage++;
-        renderSubmissionPage();
-    }
-}
-
-function prevSubmissionPage() {
-    if (currentSubmissionPage > 1) {
-        currentSubmissionPage--;
-        renderSubmissionPage();
-    }
-}
+        }
+        
+        // دالة لفلترة وعرض التسليمات بناءً على الفلتر المحدد
+        function filterSubmissions() {
+            const dateFilter = document.getElementById('date-filter');
+            const customDate = document.getElementById('custom-date');
+            const filterValue = dateFilter.value;
+            
+            submissionsList.innerHTML = '';
+            
+            // فلترة التسليمات بناءً على المستخدم الحالي
+            let userSubmissions = state.submissions
+                .filter(sub => sub.user.name === state.currentUser.name);
+            
+            // فلترة إضافية بناءً على التاريخ المحدد
+            if (filterValue === 'today') {
+                userSubmissions = userSubmissions.filter(sub => isToday(sub.date));
+            } else if (filterValue === 'custom' && customDate.value) {
+                const selectedDate = customDate.value; // بتنسيق YYYY-MM-DD
+                userSubmissions = userSubmissions.filter(sub => sub.dateFormatted === selectedDate);
+            }
+            
+            // ترتيب التسليمات من الأحدث إلى الأقدم
+            userSubmissions.sort((a, b) => b.date - a.date);
+            
+            if (userSubmissions.length === 0) {
+                submissionsList.innerHTML = '<p>No submissions found for the selected date.</p>';
+                return;
+            }
+            
+            // عرض التسليمات المفلترة
+            userSubmissions.forEach(sub => {
+                const subElement = document.createElement('div');
+                subElement.className = 'submission';
+                subElement.innerHTML = `
+                    <p><strong>GULP Link:</strong> ${sub.taskId}</p>
+                    <p><strong>Date:</strong> ${sub.date.toLocaleString()}</p>
+                    <p><strong>Classification:</strong> ${sub.classification}</p>
+                    <p><strong>Accuracy:</strong> <span class="accuracy-score">${sub.accuracy || getAccuracyForTask(sub.taskId)}</span></p>
+                    <button onclick="viewSubmissionDetails('${sub.id}')">View Details</button>
+                    <button onclick="downloadSubmission('${sub.id}')">Download</button>
+                `;
+                submissionsList.appendChild(subElement);
+            });
+        }
 
         function startNewTask() {
             showTaskPanel();
