@@ -461,6 +461,49 @@
         button.danger {
             background: #f44336;
         }
+        
+        /* Production Score Button Styles */
+        .production-score-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .production-score-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4), 0 0 20px rgba(255, 215, 0, 0.2);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            color: #fff;
+        }
+
+        .production-score-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .production-score-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .production-score-btn:hover::before {
+            left: 100%;
+        }
         .tree {
             margin-left: 20px;
         }
@@ -807,7 +850,7 @@
 
         /* Update form elements */
         .form-group {
-            background-color:
+            background-color: transparent;
         }
 
         label {
@@ -1305,7 +1348,7 @@
         
         <button id="login-btn">Start Classification</button>
         <button id="responder-dashboard-btn" onclick="window.open('https://script.google.com/macros/s/AKfycbwV5TFYA7TYy3FdESpmUO8BElxesOPnbB4Z-9rr7BbbBPMWo8A8k0F90cYGB5fKJNKOKQ/exec', '_blank')">Practice Dashboard</button>
-        <button id="pr-dashboard-btn" onclick="window.open('https://script.google.com/a/macros/meti.ai/s/AKfycbxN7B6HmzuvZg3uvcMi1Y36O_w2GdC2p9mQs9LoERNj0OndUypkbnb1F4ynvPxEhHR_/exec', '_blank')">Production Tracker</button>
+        <button id="pr-dashboard-btn" onclick="window.open('online_viewer_net.htm', '_blank')" class="production-score-btn">Production Tracker</button>
         
         <!-- Admin Login -->
         <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
