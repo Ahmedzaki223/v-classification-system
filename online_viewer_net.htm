@@ -1,0 +1,2609 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+    <meta charset="UTF-8" />
+  <title>Task Entry System</title>
+  <script src="https://apis.google.com/js/platform.js" async defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-color: #f4f6f8;
+      --text-color: #333;
+      --card-bg: white;
+      --header-bg: #6f4574;
+      --header-text: white;
+      --primary-color: #6d3773;
+      --primary-hover: #223939;
+      --radio-selected: #2f4f4f;
+      --radio-hover: #e0e0e0;
+    }
+    body.dark {
+      --bg-color: #1e1e1e;
+      --text-color: #ddd;
+      --card-bg: #2a2a2a;
+      --header-bg: #111;
+      --header-text: #fff;
+      --primary-color: #e3817c;
+      --primary-hover: #2c5e5e;
+      --radio-selected: #3a7a7a;
+      --radio-hover: #3d3d3d;
+    }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+    }
+    header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 20px;
+      font-size: 24px;
+      text-align: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1001;
+      height: 80px;
+      box-sizing: border-box;
+    }
+    
+    /* Theme toggle animations */
+@keyframes rotateSun {
+  0% { transform: rotate(0deg) scale(0.8); opacity: 0.7; }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+@keyframes rotateMoon {
+  0% { transform: rotate(-30deg) scale(0.8); opacity: 0.7; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+@keyframes glow {
+  0% { text-shadow: 0 0 0 rgba(255, 215, 0, 0); }
+  100% { text-shadow: 0 0 10px rgba(255, 215, 0, 0.7); }
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 30px;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 1002;
+  background: var(--header-bg);
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+}
+
+.theme-toggle i {
+  display: inline-block;
+  transition: color 0.3s ease;
+}
+
+body.dark .theme-toggle i {
+  color: #FFD700; /* Gold color for sun icon in dark mode */
+}
+
+
+    .main-content {
+      position: relative;
+      padding-top: 100px; /* Space for header */
+      min-height: calc(100vh - 100px);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .panel {
+      background: var(--card-bg);
+      padding: 25px;
+      border-radius: 10px;
+      display: none;
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto 30px;
+      box-sizing: border-box;
+    }
+    .panel.active-panel {
+      display: block;
+    }
+    label { display: block; margin-top: 10px; }
+    .required-label::after { content: "*"; color: red; }
+    input, select, textarea {
+      width: 100%;
+      background: var(--card-bg);
+      color: var(--text-color);
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    input.invalid, select.invalid {
+      border-color: red !important;
+      background: #fff0f0;
+    }
+    button {
+      background: var(--primary-color);
+      color: #fff;
+      padding: 10px 20px;
+      margin-top: 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+     
+    }
+    button:hover { 
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      
+    }
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background-color: white;
+      color: black;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+    body.dark .modal-content {
+      background-color: #2a2a2a;
+      color: white;
+    }
+    #loadingOverlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background-color: rgba(0, 0, 0, 0.4);
+      z-index: 9998;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .spinner {
+      border: 6px solid #ccc;
+      border-top: 6px solid var(--primary-color);
+      border-radius: 50%;
+      width: 50px; height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Panel styles */
+    .panel {
+      display: none;
+      background: var(--card-bg);
+      padding: 25px;
+      border-radius: 10px;
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto 30px;
+      box-sizing: border-box;
+    }
+    
+    .panel.active-panel {
+      display: block;
+    }
+
+    /* Dashboard and Admin panel styles */
+    .dashboard-panel,
+    .admin-panel {
+      max-height: calc(100vh - 150px);
+      overflow-y: auto;
+      padding: 20px;
+    }
+    
+    .table-container {
+      overflow-x: auto;
+      margin: 20px 0;
+      max-width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px; /* Ensures table doesn't get too narrow */
+    }
+
+    .dashboard-panel .submission-count {
+      margin-bottom: 15px;
+      font-size: 18px;
+      color: #4CAF50;
+    }
+
+    .dashboard-panel table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .dashboard-panel th,
+    .dashboard-panel td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    .dashboard-panel th {
+      background-color: var(--bg-color);
+      font-weight: bold;
+    }
+
+    .dashboard-panel tr:hover {
+      background-color: var(--bg-color);
+    }
+
+    .dashboard-panel a {
+      color: #1976d2;
+      text-decoration: none;
+    }
+
+    .dashboard-panel       a:hover {
+        text-decoration: underline;
+      }
+      
+      /* Production Score Button Styles */
+      .production-score-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      }
+
+      .production-score-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4), 0 0 20px rgba(255, 215, 0, 0.2);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        color: #fff;
+      }
+
+      .production-score-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      }
+
+      .production-score-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+        transition: left 0.5s;
+      }
+
+      .production-score-btn:hover::before {
+        left: 100%;
+      }
+
+      /* Top Performers specific styles */
+      #topPerformersTable {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1200px;
+      }
+      
+      #topPerformersTable th,
+      #topPerformersTable td {
+        padding: 12px 8px;
+        text-align: center;
+        border-bottom: 1px solid #ddd;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      #topPerformersTable th {
+        background-color: var(--primary-color);
+        color: white;
+        font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      
+      #topPerformersTable tr:hover {
+        background-color: var(--bg-color);
+      }
+      
+      #topPerformersTable td:first-child {
+        text-align: left;
+        font-weight: 500;
+      }
+      
+      .score-high {
+        color: #4CAF50;
+        font-weight: bold;
+      }
+      
+      .score-medium {
+        color: #FF9800;
+        font-weight: bold;
+      }
+      
+      .score-low {
+        color: #F44336;
+        font-weight: bold;
+      }
+      
+      .search-highlight {
+        background-color: #e3f2fd !important;
+      }
+      
+      .refresh-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      
+      .refresh-btn i {
+        transition: transform 0.3s ease;
+      }
+      
+      .refresh-btn:hover i {
+        transform: rotate(180deg);
+      }
+    
+    /* New Radio Button Styles */
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .radio-option {
+      position: relative;
+      flex: 1 1 calc(33.333% - 10px);
+      min-width: 120px;
+    }
+    
+    .radio-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .radio-option label {
+      display: block;
+      padding: 12px 15px;
+      background-color: var(--card-bg);
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      margin-top: 0;
+    }
+    
+    .radio-option label:hover {
+      background-color: var(--radio-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .radio-option input[type="radio"]:checked + label {
+      background-color: var(--radio-selected);
+      color: white;
+      border-color: var(--radio-selected);
+    }
+    
+    .radio-option input[type="radio"]:focus + label {
+      box-shadow: 0 0 0 2px rgba(47, 79, 79, 0.3);
+    }
+    
+    
+    @keyframes floating {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+      100% { transform: translateY(0px); }
+    }
+    
+    /* Section styling */
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: rgba(47, 79, 79, 0.05);
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .section:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    
+    body.dark .section {
+      background-color: rgba(47, 79, 79, 0.1);
+    }
+    
+    /* Submit button special styling */
+    .submit-btn {
+      background: linear-gradient(135deg, var(--primary-color), #3a7a7a);
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      padding: 12px 24px;
+      margin-top: 25px;
+    }
+    
+    .submit-btn:hover {
+      background: linear-gradient(135deg, var(--primary-hover), #2c5e5e);
+    }
+     
+
+    .wave {
+      position: fixed; /* fixed to stay behind all content */
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, #ffaf7b, #d76d77, #3a1c71);
+      box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+      transition: 0.5s;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .wave span {
+      position: absolute;
+      width: 325vh;
+      height: 325vh;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, -75%) rotate(0deg);
+      background: #000;
+    }
+
+    .wave span:nth-child(1) {
+      border-radius: 45%;
+      background: rgba(20, 20, 20, 1);
+      animation: animate1 5s linear infinite;
+    }
+
+    .wave span:nth-child(2) {
+      border-radius: 40%;
+      background: rgba(20, 20, 20, 0.5);
+      animation: animate2 10s linear infinite;
+    }
+
+    .wave span:nth-child(3) {
+      border-radius: 42.5%;
+      background: rgba(20, 20, 20, 0.5);
+      animation: animate3 15s linear infinite;
+    }
+
+    @keyframes animate1 {
+      from { transform: translate(var(--x, -50%), -75%) rotate(0deg); }
+      to   { transform: translate(var(--x, -50%), -75%) rotate(360deg); }
+    }
+
+    @keyframes animate2 {
+      from { transform: translate(var(--x, -50%), -75%) rotate(0deg); }
+      to   { transform: translate(var(--x, -50%), -75%) rotate(360deg); }
+    }
+
+    @keyframes animate3 {
+      from { transform: translate(var(--x, -50%), -75%) rotate(0deg); }
+      to   { transform: translate(var(--x, -50%), -75%) rotate(360deg); }
+    }
+
+   
+  </style>
+</head>
+<body>
+<header style="background: var(--header-bg); color: var(--header-text); position: fixed; top: 0; left: 0; right: 0; z-index: 1001; height: 104px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">
+  <button class="hippo-header-btn" aria-label="Hippo Button" style="background: transparent ; padding: 0; cursor: pointer; width: 400px; height: 90px; display: flex; align-items: center; justify-content: center;">
+    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 242 109" xml:space="preserve" style="height: 90px; width: 900px;">
+      <style>
+        .ear-left-outer, .ear-right-outer {fill:#919191;}
+        .ear-left-inner, .ear-right-inner {fill:#6D6D6D;}
+        .eye-right-outer, .eye-left-outer, .nostril-right-outer, .nostril-left-outer, .body {fill:#AAAAAA;}
+        .eye-right-inner, .eye-left-inner {fill:#FFFFFF;}
+        .nostril-right-inner, .nostril-left-inner{fill:#8C8C8C;}
+        .freckle {fill:#7C7C7C;}
+        .tongue {fill:#FF4848;}
+        .tooth-left, .tooth-right {fill:#FFFFE1;}
+      </style>
+      <g class="ears">
+        <g class="ear-left">
+          <ellipse class="ear-left-outer" transform="matrix(0.9391 -0.3436 0.3436 0.9391 -3.6062 17.8444)" cx="48.5" cy="19.1" rx="11.4" ry="13.8"/>
+          <ellipse class="ear-left-inner" transform="matrix(0.9391 -0.3436 0.3436 0.9391 -3.8876 17.4659)" cx="47.3" cy="19.7" rx="7.3" ry="11.2"/>
+        </g>
+        <g class="ear-right">
+          <ellipse class="ear-right-outer" transform="matrix(0.3436 -0.9391 0.9391 0.3436 106.5379 189.869)" cx="189.1" cy="18.7" rx="14.4" ry="11.9"/>
+          <ellipse class="ear-right-inner" transform="matrix(0.3436 -0.9391 0.9391 0.3436 106.8522 191.5127)" cx="190.4" cy="19.3" rx="11.7" ry="7.7"/>
+        </g>
+      </g>
+      <g class="eyes">
+        <g class="eye-right">
+          <path class="eye-right-outer" d="M174.9,27H186c0-0.3,0-0.7,0-1c0-14.4-11.6-26-26-26c-14.4,0-26,11.6-26,26 c0,0.3,0,0.7,0,1h6.1H174.9z"/>
+          <path class="eye-right-inner" d="M175,25c0-11-7.8-20-17.5-20S140,14,140,25c0,0.7,0,1.3,0.1,2h34.8 C175,26.3,175,25.7,175,25z"/>
+          <defs>
+            <mask id="eye-right-mask" fill="#ffffff">
+              <path d="M175,25c0-11-7.8-20-17.5-20S140,14,140,25c0,0.7,0,1.3,0.1,2h34.8 C175,26.3,175,25.7,175,25z"/>
+            </mask>
+          </defs>
+          <g mask="url(#eye-right-mask)">
+            <circle class="eye-right-pupil" cx="158" cy="20" r="5"/>
+          </g>
+        </g>
+        <g class="eye-left">
+          <path class="eye-left-outer" d="M96.9,27h6.1c0-0.3,0-0.7,0-1c0-14.4-11.6-26-26-26C62.6,0,51,11.6,51,26 c0,0.3,0,0.7,0,1h11.1H96.9z"/>
+          <path class="eye-left-inner" d="M97,25c0-11-7.8-20-17.5-20S62,14,62,25c0,0.7,0,1.3,0.1,2h34.8C97,26.3,97,25.7,97,25z" />
+          <defs>
+            <mask id="eye-left-mask" fill="#ffffff">
+              <path d="M97,25c0-11-7.8-20-17.5-20S62,14,62,25c0,0.7,0,1.3,0.1,2h34.8C97,26.3,97,25.7,97,25z" />
+            </mask>
+          </defs>
+          <g mask="url(#eye-left-mask)">
+            <circle class="eye-left-pupil" cx="80" cy="20" r="5"/>
+          </g>
+        </g>
+      </g>
+      <g class="nostrils">
+        <g class="nostril-right">
+          <ellipse class="nostril-right-outer" cx="130.5" cy="27.5" rx="6.5" ry="5.5"/>
+          <circle class="nostril-right-inner" cx="130" cy="28" r="4"/>
+        </g>
+        <g class="nostril-left">
+          <ellipse class="nostril-left-outer" cx="106.5" cy="27.5" rx="6.5" ry="5.5"/>
+          <circle class="nostril-left-inner" cx="107" cy="28" r="4"/>
+        </g>
+      </g>
+      <path class="body" d="M218,98H24C10.8,98,0,87.2,0,74V51c0-13.2,10.8-24,24-24h194c13.2,0,24,10.8,24,24v23 C242,87.2,231.2,98,218,98z"/>
+      <g class="freckles">
+        <circle class="freckle" cx="13.7" cy="41.4" r="1.6"/>
+        <circle class="freckle" cx="20.1" cy="44.7" r="1.6"/>
+        <circle class="freckle" cx="19.6" cy="37.8" r="1.6"/>
+      </g>
+      <defs>
+        <mask id="mouthMask">
+          <path fill="#ffffff" class="mask" d="M218,98H24C10.8,98,0,87.2,0,74V51c0-13.2,10.8-24,24-24h194c13.2,0,24,10.8,24,24v23 C242,87.2,231.2,98,218,98z"/>
+        </mask>
+      </defs> 
+      <g class="mouth" mask="url(#mouthMask)">
+        <g class="mouth-pieces">
+          <path class="mouth-back" d="M23.6,168.2l-3-56.1c0-7.8,6.4-14.1,14.1-14.1h172.4c7.8,0,14.1,6.4,14.1,14.1l-3,56.1"/>
+          <path class="tongue" d="M174.9,168.2c-7.3-5-24.5-9.9-54.8-9.9s-48,5.1-54.8,9.9"/>
+        </g>
+      </g>
+      <g class="teeth">
+        <path class="tooth-left" d="M115,97.9v7.5c0,2-1.7,3.6-3.6,3.6H89.7c-2,0-3.6-1.7-3.6-3.6v-7.5H115z"/>
+        <path class="tooth-right" d="M154,97.9v7.5c0,2-1.7,3.6-3.6,3.6h-21.7c-2,0-3.6-1.7-3.6-3.6v-7.5H154z"/>
+      </g>
+    </svg>       
+  </button>
+  <div class="theme-toggle" onclick="toggleTheme()">
+    <i id="themeIcon" class="fas"></i>
+  </div>
+</header>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.0.1/dist/gsap.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const button = document.querySelector('header .hippo-header-btn');
+  if (button) {
+    button.addEventListener('mouseenter', enterButton);
+    button.addEventListener('mouseleave', leaveButton);
+
+    const mouthSpeed = 0.3;
+    const easeType = Power2.easeOut;
+    const mouthOpen = gsap.timeline({ paused: true });
+    mouthOpen.to('header .mouth-back', mouthSpeed, {ease: easeType, y: -70}, 0);
+    mouthOpen.to('header .tongue', mouthSpeed + (mouthSpeed * 0.50), {ease: easeType, y: -70}, 0);
+    mouthOpen.to('header .teeth', mouthSpeed, {ease: easeType, y: -70, scaleY: 1.2}, 0);
+    mouthOpen.to('header .body', mouthSpeed, {ease: easeType, scaleY: 1.06, transformOrigin: 'center bottom'}, 0);
+    mouthOpen.to('header .freckles', mouthSpeed, {ease: easeType, y: -10}, 0);
+    mouthOpen.to('header .ears', mouthSpeed, {ease: easeType, y: 6}, 0);
+    mouthOpen.to('header .eye-right', mouthSpeed, {ease: easeType, x: -2}, 0);
+    mouthOpen.to('header .eye-left', mouthSpeed, {ease: easeType, x: 2}, 0);
+    mouthOpen.to('header .eyes', mouthSpeed, {ease: easeType, y: 2}, 0);
+    mouthOpen.to('header .nostrils', mouthSpeed, {ease: easeType, y: -6}, 0);
+
+    function enterButton() { mouthOpen.play(); }
+    function leaveButton() { mouthOpen.reverse(); }
+
+    // Ear wiggle
+    const earWiggle = gsap.timeline({ paused: true });
+    earWiggle.set('header .ear-right', { transformOrigin:"center center" });
+    earWiggle.to('header .ear-right', 0.1, {rotation: 45});
+    earWiggle.to('header .ear-right', 0.1, {rotation: 0});
+    earWiggle.to('header .ear-right', 0.1, {rotation: 45});
+    earWiggle.to('header .ear-right', 0.1, {rotation: 0});
+    earWiggle.to('header .ear-right', 0.1, {rotation: 45});
+    earWiggle.to('header .ear-right', 0.1, {rotation: 0});
+    window.setInterval(() => earWiggle.play(0), 3500);
+
+    // Eye tracking
+    const eyeRightPupil = document.querySelector('header .eye-right-pupil');
+    const eyeLeftPupil = document.querySelector('header .eye-left-pupil');
+    const eyeLeftInner = document.querySelector('header .eye-left-inner');
+    if (eyeLeftInner && eyeLeftPupil && eyeRightPupil) {
+      const innerEyeWidth = eyeLeftInner.getBoundingClientRect().width;
+      const innerEyeHeight = eyeLeftInner.getBoundingClientRect().height;
+      const pupilWidth = eyeLeftPupil.getBoundingClientRect().width;
+      const pupilHeight = eyeLeftPupil.getBoundingClientRect().height;
+
+      window.addEventListener('mousemove', function(e) {
+        const mousePercentX = e.clientX / document.body.clientWidth;
+        const mousePercentY = e.clientY / document.body.clientHeight;
+        const posX = (mousePercentX * 2 - 1) * (innerEyeWidth - pupilWidth)/2;
+        const posY = (mousePercentY * 2 - 1) * (innerEyeHeight - pupilHeight)/2;
+        eyeLeftPupil.style.transform = `translate(${posX}px, ${posY}px)`;
+        eyeRightPupil.style.transform = `translate(${posX}px, ${posY}px)`;
+      });
+    }
+  }
+});
+</script>
+<script>
+  document.addEventListener('contextmenu', event => event.preventDefault());
+</script>
+
+<div class="main-content">
+
+<!-- Login -->
+<div id="loginPanel" class="panel active-panel">
+  <h2>Login</h2>
+  <label class="required-label">Name</label>
+  <select id="nameDropdown" onchange="onNameChange()">
+    <option value="">--Select--</option>
+    <option value="other">Other</option>
+  </select>
+  <div id="manualFields" style="display:none;">
+    <label class="required-label">Enter Name</label>
+    <input type="text" id="manualName">
+    <label class="required-label">PC</label>
+    <input type="text" id="manualPC">
+    <label class="required-label">Yubikey</label>
+    <input type="text" id="manualYubikey">
+    <label class="required-label">Shift</label>
+    <select id="manualShift">
+      <option value="">--Select--</option>
+      <option>Morning</option>
+      <option>Night</option>
+      <option>Overnight</option>
+    </select>
+  </div>
+  <div id="autoFields" style="display:none;">
+    <label>PC: <span id="autoPC"></span></label>
+    <label>Yubikey: <span id="autoYubikey"></span></label>
+    <label>Shift: <span id="autoShift"></span></label>
+  </div>
+  <button onclick="loginResponder()">Login</button>
+  <hr>
+  <h3>Admin Access</h3>
+  <input type="password" id="adminPass" placeholder="Admin password">
+  <button onclick="loginAdmin()">Login as Admin</button>
+</div>
+
+<!-- Task Panel -->
+<div id="taskPanel" class="panel">
+  <div id="userInfoHeader" style="margin-bottom: 15px;"></div>
+  <h2>Submit Task</h2>
+  
+  <div class="section">
+    <label class="required-label">Segment ID</label>
+    <input type="text" id="segmentInput">
+    
+    <label class="required-label">Gulp Link</label>
+    <input type="text" id="gulpInput">
+    
+    <label class="required-label">Role</label>
+    <div class="radio-group" id="roleRadioGroup">
+      <div class="radio-option">
+        <input type="radio" id="roleFP" name="role" value="FP" onchange="updateRolePanel()">
+        <label for="roleFP">FP</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="roleQA" name="role" value="QA" onchange="updateRolePanel()">
+        <label for="roleQA">QA</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="roleAudit" name="role" value="Audit" onchange="updateRolePanel()">
+        <label for="roleAudit">Audit</label>
+      </div>
+    </div>
+  </div>
+  
+  <div id="fpPanel" style="display:none;" class="section floating">
+    <label class="required-label">Queue</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="queue1" name="queue" value="USL_TKO_P2">
+        <label for="queue1">USL_TKO_P2</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="queue2" name="queue" value="USL_Manual_Driving">
+        <label for="queue2">USL_Manual_Driving</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="queue3" name="queue" value="USL_Safety_Proxy_SIM_Matrix">
+        <label for="queue3">USL_Safety_Proxy_SIM_Matrix</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="queue4" name="queue" value="Audit Queue">
+        <label for="queue4">Audit Queue</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="queue5" name="queue" value="Other">
+        <label for="queue5">Other</label>
+      </div>
+    </div>
+    <div id="otherQueueContainer" style="display:none; margin-top:10px;">
+      <label>Other Queue?</label>
+      <input type="text" id="otherQueueInput">
+    </div>
+    
+    <label class="required-label">Scenario?</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="scenario1" name="scenario" value="Lane Change">
+        <label for="scenario1">Lane Change</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="scenario2" name="scenario" value="Rear following">
+        <label for="scenario2">Rear following</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="scenario3" name="scenario" value="UPL">
+        <label for="scenario3">UPL</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="scenario4" name="scenario" value="MMR">
+        <label for="scenario4">MMR</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="scenario5" name="scenario" value="BT">
+        <label for="scenario5">BT</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="scenario6" name="scenario" value="Other">
+        <label for="scenario6">Other</label>
+      </div>
+    </div>
+    
+    <label class="required-label">Did you use EMM?</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="emmYes" name="emm" value="Yes">
+        <label for="emmYes">Yes</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="emmNo" name="emm" value="No">
+        <label for="emmNo">No</label>
+      </div>
+    </div>
+    
+    <label class="required-label">Did you use SDC tools?</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="toolsYes" name="tools" value="Yes">
+        <label for="toolsYes">Yes</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="toolsNo" name="tools" value="No">
+        <label for="toolsNo">No</label>
+      </div>
+    </div>
+    
+    <label class="required-label">Sim segment?</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="simYes" name="sim" value="Yes">
+        <label for="simYes">Yes</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="simNo" name="sim" value="No">
+        <label for="simNo">No</label>
+      </div>
+    </div>
+    
+    <label class="required-label">Evasive maneuver?</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="evasiveYes" name="evasive" value="Yes">
+        <label for="evasiveYes">Yes</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="evasiveNo" name="evasive" value="No">
+        <label for="evasiveNo">No</label>
+      </div>
+    </div>
+    
+    <label class="required-label">Used Key Factors?</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="keyFactorsYes" name="keyFactors" value="Yes">
+        <label for="keyFactorsYes">Yes</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="keyFactorsNo" name="keyFactors" value="No">
+        <label for="keyFactorsNo">No</label>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <label class="required-label">Final Outcome</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="outcome1" name="outcome" value="SCE">
+        <label for="outcome1">SCE</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="outcome2" name="outcome" value="NMC">
+        <label for="outcome2">NMC</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="outcome3" name="outcome" value="RQE">
+        <label for="outcome3">RQE</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="outcome4" name="outcome" value="Missing Data">
+        <label for="outcome4">Missing Data</label>
+      </div>
+    </div>
+    
+    <label class="required-label">Reviewed By</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="reviewed1" name="reviewedBy" value="Tasneem" onchange="toggleSpotCheck()">
+        <label for="reviewed1">Tasneem</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="reviewed2" name="reviewedBy" value="Abanoub Sameh" onchange="toggleSpotCheck()">
+        <label for="reviewed2">Abanoub Sameh</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="reviewed3" name="reviewedBy" value="Abanoub Magdy" onchange="toggleSpotCheck()">
+        <label for="reviewed3">Abanoub Magdy</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="reviewed4" name="reviewedBy" value="Ahmed Zaki" onchange="toggleSpotCheck()">
+        <label for="reviewed4">Ahmed Zaki</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="reviewed5" name="reviewedBy" value="Ibrahim Ashraf" onchange="toggleSpotCheck()">
+        <label for="reviewed5">Ibrahim Ashraf</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="reviewed6" name="reviewedBy" value="Fahmy" onchange="toggleSpotCheck()">
+        <label for="reviewed6">Fahmy</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="reviewed7" name="reviewedBy" value="Submitted by a spot check" onchange="toggleSpotCheck()">
+        <label for="reviewed7">Submitted by a spot check</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="reviewed8" name="reviewedBy" value="NPCs present, but no conflict or interaction & No NPC present & RQE with no calculation" onchange="toggleSpotCheck()">
+        <label for="reviewed8">NPCs present...</label>
+      </div>
+    </div>
+    
+    <div id="spotCheckPanel" style="display:none;">
+      <label>Note (Do Not Add)</label>
+      <input type="text" id="spotNote">
+    </div>
+  </div>
+  
+  <div id="auditPanel" style="display:none;" class="section floating">
+    <h3>Audit Section</h3>
+    <label class="required-label">Rationale</label>
+    <input type="text" id="rationaleInput">
+    
+    <label class="required-label">Alter Classification?</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="alterYes" name="alter" value="Yes">
+        <label for="alterYes">Yes</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="alterNo" name="alter" value="No">
+        <label for="alterNo">No</label>
+      </div>
+    </div>
+    
+    <label class="required-label">Disagreement Reason</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="disagree1" name="disagreement" value="Guidance Gap">
+        <label for="disagree1">Guidance Gap</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="disagree2" name="disagreement" value="Ambiguity">
+        <label for="disagree2">Ambiguity</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="disagree3" name="disagreement" value="Other">
+        <label for="disagree3">Other</label>
+      </div>
+    </div>
+    
+    <label class="required-label">Gap Type</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="gap1" name="gapType" value="EMM">
+        <label for="gap1">EMM</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="gap2" name="gapType" value="Severity">
+        <label for="gap2">Severity</label>
+      </div>
+    </div>
+    
+    <label class="required-label">Challenge?</label>
+    <input type="text" id="challengeInput">
+    
+    <label class="required-label">Audit Reviewer</label>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="auditReviewer1" name="auditReviewer" value="Ziad">
+        <label for="auditReviewer1">Ziad</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="auditReviewer2" name="auditReviewer" value="Abanoub">
+        <label for="auditReviewer2">Abanoub</label>
+      </div>
+    </div>
+  </div>
+  
+  <div style="text-align: center; margin-top: 30px;">
+    <button onclick="submitTaskToSheet()" class="submit-btn floating">Submit Task</button>
+    <button onclick="showPanel('dashboardPanel')">My Dashboard</button>
+    <button onclick="showPanel('topPerformersPanel')" class="production-score-btn">Production Score</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<!-- Dashboard Panel -->
+<div id="dashboardPanel" class="panel dashboard-panel">
+  <h2>Your Submissions <span id="submissionCount" class="submission-count"></span></h2>
+  <div class="dashboard-filters" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+    <div>
+      <label for="dashboardDateFilter">Filter by date:</label>
+      <select id="dashboardDateFilter" onchange="applyDashboardFilters()" style="padding: 5px; margin-left: 10px;">
+        <option value="today">Today</option>
+        <option value="all">All Time</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+      </select>
+    </div>
+    <div>
+     <button onclick="resetDashboardFilters()" style="padding: 10px 15px; margin-left: 20px; margin-top: 30px;">
+       Reset Filters
+     </button>
+    </div>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Segment ID</th>
+          <th>Gulp Link</th>
+          <th>Role</th>
+          <th>Final Outcome</th>
+          <th>Reviewed By</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody id="dashboardTableBody">
+        <tr>
+          <td colspan="7">Loading...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top: 20px;">
+    <button onclick="showPanel('taskPanel')">Back to Task Entry</button>
+  </div>
+  </div>
+  
+  <!-- Top Performers Panel -->
+  <div id="topPerformersPanel" class="panel dashboard-panel">
+            <h2>Top Performers - Production Score <span id="performersCount" class="submission-count"></span></h2>
+    
+    <!-- Search and Filter Section -->
+    <div class="dashboard-filters" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <div>
+        <label for="employeeSearch">Search Employee:</label>
+        <input type="text" id="employeeSearch" placeholder="Enter your name..." style="padding: 8px; margin-left: 10px; min-width: 200px;">
+      </div>
+      <div>
+        <button onclick="searchEmployee()" style="padding: 8px 15px;">Search</button>
+      </div>
+      <div>
+        <button onclick="refreshTopPerformersData()" style="padding: 8px 15px; background: var(--primary-color);">
+          <i class="fas fa-sync-alt"></i> Refresh Data
+        </button>
+      </div>
+      <div>
+        <button onclick="clearSearch()" style="padding: 8px 15px;">Clear Search</button>
+      </div>
+    </div>
+    
+    <!-- Performance Table -->
+    <div class="table-container">
+      <table id="topPerformersTable">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Tasks</th>
+            <th>Labels</th>
+            <th>True Positives</th>
+            <th>True Negatives</th>
+            <th>False Positives</th>
+            <th>False Negatives</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>Accuracy</th>
+            <th>Overall Score</th>
+          </tr>
+        </thead>
+        <tbody id="topPerformersTableBody">
+          <tr>
+            <td colspan="11" style="text-align: center; padding: 20px;">Loading Top Performers Data...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Update Info -->
+    <div style="margin-top: 20px; padding: 15px; background: var(--bg-color); border-radius: 8px;">
+      <p style="margin: 0; color: var(--text-color);">
+        <strong>Last Updated:</strong> <span id="lastUpdateTime">-</span>
+      </p>
+      <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">
+        Data is automatically updated weekly from Looker Studio (USL Pipeline)
+      </p>
+    </div>
+    
+    <div style="margin-top: 20px;">
+      <button onclick="showPanel('taskPanel')">Back to Task Entry</button>
+      <button onclick="showPanel('dashboardPanel')">My Dashboard</button>
+    </div>
+  </div>
+  
+  <!-- Admin Panel -->
+<div id="adminPanel" class="panel admin-panel">
+  <h2>Admin Panel <span id="totalCount" class="submission-count">(0)</span></h2>
+  <div class="filters" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+    <div>
+      <input type="text" id="filterName" placeholder="Filter by name" style="padding: 8px; min-width: 200px;">
+    </div>
+    <div>
+      <select id="filterShift" style="padding: 8px;">
+        <option value="">All Shifts</option>
+        <option value="Morning">Morning</option>
+        <option value="Night">Night</option>
+        <option value="Overnight">Overnight</option>
+      </select>
+    </div>
+    <div>
+      <select id="filterDate" style="padding: 8px;">
+        <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+      </select>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button onclick="applyAdminFilters()" style="padding: 8px 15px;">Apply Filters</button>
+      <button onclick="clearAdminFilters()" style="padding: 8px 15px;">Clear Filters</button>
+      <button onclick="logout()" style="padding: 8px 15px;">Log Out</button>
+    </div>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Name</th>
+          <th>PC</th>
+          <th>Yubikey</th>
+          <th>Shift</th>
+          <th>Segment</th>
+          <th>Gulp</th>
+          <th>Role</th>
+          <th>Queue</th>
+          <th>Outcome</th>
+          <th>Reviewed By</th>
+        </tr>
+      </thead>
+      <tbody id="adminTableBody"></tbody>
+    </table>
+  </div>
+  <div style="margin-top: 20px;">
+    <button onclick="showPanel('loginPanel')">Back to login</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modalPopup" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h3>⚠️ Message</h3>
+    <p id="modalText">Text</p>
+    <button onclick="closeModal()">OK</button>
+  </div>
+</div>
+
+<div id="loadingOverlay" style="display:none;">
+  <div class="spinner"></div>
+</div>
+
+<script>
+let modalAction = null;
+let _adminData = [];
+let userList = [];
+let allAdminData = [];
+let allDashboardData = [];
+
+// Top Performers Data (moved to top to avoid initialization error)
+let topPerformersData = [
+  {
+    labeler: "me804985@meti.ai",
+    tasks: 150,
+    labels: 450,
+    tp: 120,
+    tn: 200,
+    fp: 30,
+    fn: 20,
+    precision: 80.0,
+    recall: 85.7,
+    accuracy: 88.9,
+    score: 92.5
+  },
+  {
+    labeler: "ahmed.zaki@meti.ai",
+    tasks: 120,
+    labels: 360,
+    tp: 95,
+    tn: 180,
+    fp: 25,
+    fn: 15,
+    precision: 79.2,
+    recall: 86.4,
+    accuracy: 87.5,
+    score: 89.0
+  },
+  {
+    labeler: "ibrahim.ashraf@meti.ai",
+    tasks: 100,
+    labels: 300,
+    tp: 80,
+    tn: 150,
+    fp: 20,
+    fn: 10,
+    precision: 80.0,
+    recall: 88.9,
+    accuracy: 88.3,
+    score: 87.5
+  },
+  {
+    labeler: "tasneem.ahmed@meti.ai",
+    tasks: 95,
+    labels: 285,
+    tp: 75,
+    tn: 140,
+    fp: 20,
+    fn: 10,
+    precision: 78.9,
+    recall: 88.2,
+    accuracy: 87.0,
+    score: 85.0
+  },
+  {
+    labeler: "abanoub.sameh@meti.ai",
+    tasks: 110,
+    labels: 330,
+    tp: 85,
+    tn: 160,
+    fp: 25,
+    fn: 15,
+    precision: 77.3,
+    recall: 85.0,
+    accuracy: 85.2,
+    score: 82.5
+  },
+  {
+    labeler: "fahmy.ali@meti.ai",
+    tasks: 85,
+    labels: 255,
+    tp: 65,
+    tn: 120,
+    fp: 20,
+    fn: 10,
+    precision: 76.5,
+    recall: 86.7,
+    accuracy: 84.7,
+    score: 82.0
+  },
+  {
+    labeler: "ziad.mohamed@meti.ai",
+    tasks: 75,
+    labels: 225,
+    tp: 55,
+    tn: 110,
+    fp: 20,
+    fn: 10,
+    precision: 73.3,
+    recall: 84.6,
+    accuracy: 82.2,
+    score: 80.0
+  }
+];
+
+function toggleTheme() {
+  const body = document.body;
+  const themeIcon = document.getElementById('themeIcon');
+  
+  // Toggle theme class
+  body.classList.toggle('dark');
+  
+  // Animate the icon
+  if (body.classList.contains('dark')) {
+    themeIcon.className = 'fas fa-sun';
+    themeIcon.style.animation = 'rotateSun 0.6s ease, glow 0.5s ease 0.3s forwards';
+  } else {
+    themeIcon.className = 'fas fa-moon';
+    themeIcon.style.animation = 'rotateMoon 0.6s ease';
+  }
+  
+  // Clear animations after they complete
+  setTimeout(() => {
+    themeIcon.style.animation = '';
+  }, 1000);
+}
+
+function showPanel(panelId) {
+  try {
+    console.log(`Showing panel: ${panelId}`);
+    
+    // Hide all panels
+    document.querySelectorAll('.panel').forEach(panel => {
+      panel.style.display = 'none';
+    });
+    
+    // Show the selected panel
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    
+    panel.style.display = 'block';
+    
+    // If showing the dashboard, refresh the data
+    if (panelId === 'dashboardPanel') {
+      console.log('Dashboard panel shown, loading data...');
+      loadDashboardData();
+      return;
+    }
+    
+    // If showing the admin panel, initialize and load data
+    if (panelId === 'adminPanel') {
+      console.log('Admin panel shown, initializing...');
+      
+      // Reset filter inputs
+      const filterName = document.getElementById("filterName");
+      const filterShift = document.getElementById("filterShift");
+      const filterDate = document.getElementById("filterDate");
+      
+      if (filterName) filterName.value = "";
+      if (filterShift) filterShift.value = "";
+      if (filterDate) filterDate.value = "all";
+      
+      // Clear existing data and show loading state
+      const tbody = document.getElementById("adminTableBody");
+      if (tbody) {
+        tbody.innerHTML = "<tr><td colspan='11' style='text-align: center; padding: 20px;'>Loading submissions...</td></tr>";
+      }
+      
+      // Reset the total count
+      const totalCountElement = document.getElementById("totalCount");
+      if (totalCountElement) {
+        totalCountElement.textContent = "(loading...)";
+      }
+      
+      // Clear any existing data to force a fresh load
+      allAdminData = [];
+      
+      // Apply filters to load fresh data
+      console.log('Loading admin data...');
+          applyAdminFilters();
+  }
+  
+  // If showing the top performers panel, load data
+  if (panelId === 'topPerformersPanel') {
+    console.log('Top Performers panel shown, loading data...');
+    loadTopPerformersData();
+  }
+} catch (error) {
+  console.error('Error in showPanel:', error);
+}
+}
+
+function loginResponder() {
+  let name, pc, yubikey, shift;
+  const val = document.getElementById('nameDropdown').value;
+  if (val === "other") {
+    name = document.getElementById('manualName').value.trim();
+    pc = document.getElementById('manualPC').value.trim();
+    yubikey = document.getElementById('manualYubikey').value.trim();
+    shift = document.getElementById('manualShift').value;
+    if (!name || !pc || !yubikey || !shift) {
+      showModal("Please fill all required fields.");
+      return;
+    }
+  } else {
+    const user = userList.find(u => u.name === val);
+    if (!user) {
+      showModal("Please select a valid name.");
+      return;
+    }
+    name = user.name;
+    pc = user.pc;
+    yubikey = user.yubikey;
+    shift = user.shift;
+  }
+  localStorage.setItem("responderInfo", JSON.stringify({ name, pc, yubikey, shift }));
+  showPanel("taskPanel");
+  showUserInfo();
+}
+
+function loginAdmin() {
+  const pass = document.getElementById("adminPass").value.trim();
+  if (!pass) {
+    showModal("⚠️ Please enter the admin password.");
+    return;
+  }
+  if (pass !== "admin123") {
+    showModal("❌ Incorrect admin password.");
+    return;
+  }
+
+  document.getElementById("loadingOverlay").style.display = "flex";
+
+  google.script.run
+    .withSuccessHandler(data => {
+      document.getElementById("loadingOverlay").style.display = "none";
+
+      if (!Array.isArray(data)) {
+        console.error("Expected admin data array, got:", data);
+        showModal("❌ Invalid data received from server.");
+        return;
+      }
+
+      if (data.length === 0) {
+        showModal("ℹ️ No admin submissions found.");
+        return;
+      }
+
+      _adminData = data;
+      renderAdminTable(_adminData);
+      showPanel("adminPanel");
+    })
+    .withFailureHandler(err => {
+      document.getElementById("loadingOverlay").style.display = "none";
+      console.error("Error loading admin data:", err);
+      showModal("❌ Could not load admin data.");
+    })
+    .getAdminSubmissions("", "");
+}
+function renderAdminTable(data) {
+  const tbody = document.getElementById("adminTableBody");
+  if (!tbody) return;
+  if (!Array.isArray(data)) {
+    tbody.innerHTML = "<tr><td colspan='11'>Error loading data.</td></tr>";
+    return;
+  }
+  tbody.innerHTML = "";
+  if (data.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='11'>No submissions found.</td></tr>";
+    return;
+  }
+  data.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.timestamp ? new Date(row.timestamp).toLocaleString() : ""}</td>
+      <td>${row.name || ""}</td>
+      <td>${row.pc || ""}</td>
+      <td>${row.yubikey || ""}</td>
+      <td>${row.shift || ""}</td>
+      <td>${row.segment || ""}</td>
+      <td>${row.gulp || ""}</td>
+      <td>${row.role || ""}</td>
+      <td>${row.queue || ""}</td>
+      <td>${row.outcome || ""}</td>
+      <td>${row.reviewedBy || ""}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function logout() {
+  localStorage.removeItem("responderInfo");
+  showPanel("loginPanel");
+}
+
+function showModal(text, isSuccess = false) {
+  modalAction = isSuccess ? "reset" : null;
+  document.getElementById("modalText").innerText = text;
+  const btn = document.querySelector("#modalPopup button");
+  btn.innerText = isSuccess ? "Submit Another" : "OK";
+  document.getElementById("modalPopup").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("modalPopup").style.display = "none";
+  if (modalAction === "reset") {
+    resetTaskForm(); // استدعاء دالة إعادة تعيين النموذج
+    showPanel("taskPanel");
+  }
+  modalAction = null;
+}
+
+function resetTaskForm() {
+  // إعادة تعيين جميع حقول الإدخال
+  document.querySelectorAll("#taskPanel input[type='text'], #taskPanel input[type='password'], #taskPanel textarea").forEach(input => {
+    input.value = "";
+    input.classList.remove("invalid");
+  });
+
+  // إعادة تعيين جميع حقول الراديو
+  document.querySelectorAll("#taskPanel input[type='radio']").forEach(radio => {
+    radio.checked = false;
+  });
+
+  // إعادة تعيين جميع حقول السيلكت
+  document.querySelectorAll("#taskPanel select").forEach(select => {
+    select.selectedIndex = 0;
+  });
+
+  // إخفاء الألواح الإضافية
+  document.getElementById("fpPanel").style.display = "none";
+  document.getElementById("auditPanel").style.display = "none";
+  document.getElementById("spotCheckPanel").style.display = "none";
+  document.getElementById("otherQueueContainer").style.display = "none";
+}
+
+
+function toggleSpotCheck() {
+  const val = document.querySelector('input[name="reviewedBy"]:checked')?.value;
+  document.getElementById("spotCheckPanel").style.display = (val === "Submitted by a spot check") ? "block" : "none";
+}
+
+function updateRolePanel() {
+  const role = document.querySelector('input[name="role"]:checked')?.value;
+  document.getElementById("fpPanel").style.display = (role === "FP" || role === "QA") ? "block" : "none";
+  document.getElementById("auditPanel").style.display = (role === "Audit") ? "block" : "none";
+}
+
+function submitTaskToSheet() {
+  const overlay = document.getElementById("loadingOverlay");
+  overlay.style.display = "flex";
+  const info = JSON.parse(localStorage.getItem('responderInfo') || '{}');
+  if (!info.name || !info.pc || !info.yubikey || !info.shift) {
+    overlay.style.display = "none";
+    showModal("⚠️ Login info missing.");
+    return;
+  }
+
+  // Get all radio button values
+  const role = document.querySelector('input[name="role"]:checked')?.value;
+  const queue = document.querySelector('input[name="queue"]:checked')?.value;
+  const scenario = document.querySelector('input[name="scenario"]:checked')?.value;
+  const emm = document.querySelector('input[name="emm"]:checked')?.value;
+  const toolsUsed = document.querySelector('input[name="tools"]:checked')?.value;
+  const sim = document.querySelector('input[name="sim"]:checked')?.value;
+  const evasive = document.querySelector('input[name="evasive"]:checked')?.value;
+  const keyFactors = document.querySelector('input[name="keyFactors"]:checked')?.value;
+  const outcome = document.querySelector('input[name="outcome"]:checked')?.value;
+  const reviewedBy = document.querySelector('input[name="reviewedBy"]:checked')?.value;
+  const alter = document.querySelector('input[name="alter"]:checked')?.value;
+  const disagreement = document.querySelector('input[name="disagreement"]:checked')?.value;
+  const gapType = document.querySelector('input[name="gapType"]:checked')?.value;
+  const auditReviewer = document.querySelector('input[name="auditReviewer"]:checked')?.value;
+
+  // Reset all invalid indicators first
+  document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+
+  // Common required fields for all roles
+  const required = [
+    {id: "segmentInput", value: document.getElementById("segmentInput").value, label: "Segment ID"},
+    {id: "gulpInput", value: document.getElementById("gulpInput").value, label: "Gulp Link"},
+    {id: "role", value: role, label: "Role"},
+    {id: "outcome", value: outcome, label: "Final Outcome"},
+    {id: "reviewedBy", value: reviewedBy, label: "Reviewed By"}
+  ];
+
+  // Role-specific required fields
+  if (role === "FP" || role === "QA") {
+    required.push(
+      {id: "queue", value: queue, label: "Queue"},
+      {id: "scenario", value: scenario, label: "Scenario"},
+      {id: "emm", value: emm, label: "Did you use EMM?"},
+      {id: "tools", value: toolsUsed, label: "Did you use SDC tools?"},
+      {id: "sim", value: sim, label: "Sim segment?"},
+      {id: "evasive", value: evasive, label: "Evasive maneuver?"},
+      {id: "keyFactors", value: keyFactors, label: "Used Key Factors?"}
+    );
+
+    if (queue === "Other") {
+      required.push({
+        id: "otherQueueInput", 
+        value: document.getElementById("otherQueueInput")?.value, 
+        label: "Other Queue"
+      });
+    }
+  } 
+  else if (role === "Audit") {
+    required.push(
+      {id: "rationaleInput", value: document.getElementById("rationaleInput").value, label: "Rationale"},
+      {id: "alter", value: alter, label: "Alter Classification?"},
+      {id: "disagreement", value: disagreement, label: "Disagreement Reason"},
+      {id: "gapType", value: gapType, label: "Gap Type"},
+      {id: "challengeInput", value: document.getElementById("challengeInput").value, label: "Challenge?"},
+      {id: "auditReviewer", value: auditReviewer, label: "Audit Reviewer"}
+    );
+  }
+
+  // Check for empty required fields
+  const missingFields = required.filter(item => !item.value || !item.value.trim());
+  
+  if (missingFields.length > 0) {
+    overlay.style.display = "none";
+    
+    // Highlight missing fields
+   // Scroll to the first missing field only
+let scrolled = false;
+
+missingFields.forEach(item => {
+  if (["role", "queue", "scenario", "emm", "tools", "sim", "evasive", "keyFactors", "outcome", "reviewedBy", "alter", "disagreement", "gapType", "auditReviewer"].includes(item.id)) {
+    const radioGroup = document.querySelector(`input[name="${item.id}"]`)?.closest('.radio-group');
+    if (radioGroup) {
+      radioGroup.style.border = "2px solid red";
+      radioGroup.style.borderRadius = "6px";
+      radioGroup.style.padding = "5px";
+      if (!scrolled) {
+        radioGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrolled = true;
+      }
+      setTimeout(() => {
+        radioGroup.style.border = "";
+        radioGroup.style.padding = "";
+      }, 3000);
+    }
+  } else {
+    const el = document.getElementById(item.id);
+    if (el) {
+      el.classList.add("invalid");
+      if (!scrolled) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrolled = true;
+      }
+    }
+  }
+});
+
+
+    // Prepare error message
+    let errorMessage = "⚠️ Please fill all required fields:<br><br>";
+    errorMessage += missingFields.map(field => `• ${field.label}`).join("<br>");
+    
+    showModal(errorMessage);
+    return;
+  }
+
+  // Prepare task data
+  const taskData = {
+    name: info.name,
+    pc: info.pc,
+    yubikey: info.yubikey,
+    shift: info.shift,
+    segment: document.getElementById("segmentInput").value,
+    gulp: document.getElementById("gulpInput").value,
+    role: role,
+    queue: queue || "",
+    otherQueue: document.getElementById("otherQueueInput")?.value || "",
+    scenario: scenario || "",
+    emm: emm || "",
+    toolsUsed: toolsUsed || "",
+    sim: sim || "",
+    evasive: evasive || "",
+    keyFactors: keyFactors || "",
+    outcome: outcome || "",
+    reviewedBy: reviewedBy || "",
+    spotNote: document.getElementById("spotNote")?.value || "",
+    rationale: document.getElementById("rationaleInput")?.value || "",
+    alter: alter || "",
+    disagreement: disagreement || "",
+    gapType: gapType || "",
+    challenge: document.getElementById("challengeInput")?.value || "",
+    auditReviewer: auditReviewer || ""
+  };
+
+  // Submit data
+  google.script.run
+    .withSuccessHandler(() => {
+      overlay.style.display = "none";
+      showModal("✅ Task submitted successfully!", true);
+      resetTaskForm();
+    })
+    .withFailureHandler(err => {
+      overlay.style.display = "none";
+      showModal("❌ Error submitting task.");
+      console.error(err);
+    })
+    .submitTaskToSheet(taskData);
+}
+
+function applyAdminFilters() {
+  try {
+    const name = document.getElementById("filterName").value.trim().toLowerCase();
+    const shift = document.getElementById("filterShift").value;
+    const dateFilter = document.getElementById("filterDate").value;
+    
+    const tbody = document.getElementById("adminTableBody");
+    const totalCountElement = document.getElementById("totalCount");
+    
+    if (!tbody) {
+      console.error("Could not find admin table body");
+      return;
+    }
+    
+    tbody.innerHTML = "<tr><td colspan='11' style='text-align: center; padding: 20px;'>Loading submissions...</td></tr>";
+    
+    // Show loading overlay
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    if (loadingOverlay) loadingOverlay.style.display = "flex";
+    
+    // If we already have data, filter it client-side
+    if (allAdminData.length > 0) {
+      filterAndDisplayAdminData(name, shift, dateFilter);
+      return;
+    }
+    
+    // Otherwise, fetch fresh data
+    google.script.run
+      .withSuccessHandler(data => {
+        try {
+          if (loadingOverlay) loadingOverlay.style.display = "none";
+          
+          if (!data || !Array.isArray(data)) {
+            throw new Error("Invalid data received from server");
+          }
+          
+          // Store all data for client-side filtering
+          allAdminData = data;
+          
+          // Update total count
+          if (totalCountElement) {
+            totalCountElement.textContent = `(${data.length} total)`;
+          }
+          
+          // Apply filters to the data
+          filterAndDisplayAdminData(name, shift, dateFilter);
+          
+        } catch (error) {
+          console.error("Error processing admin data:", error);
+          showError(tbody, "Error processing data. Please try again.");
+        }
+      })
+      .withFailureHandler(error => {
+        if (loadingOverlay) loadingOverlay.style.display = "none";
+        console.error("Admin data fetch error:", error);
+        showError(tbody, getErrorMessage(error));
+      })
+      .getAdminSubmissions('', ''); // Pass empty strings for name and shift filters
+      
+  } catch (error) {
+    console.error("Error in applyAdminFilters:", error);
+    const tbody = document.getElementById("adminTableBody");
+    showError(tbody, "An unexpected error occurred. Please try again.");
+  }
+}
+
+
+
+function filterAndDisplayAdminData(nameFilter, shiftFilter, dateFilter) {
+  const tbody = document.getElementById("adminTableBody");
+  const totalCountElement = document.getElementById("totalCount");
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  
+  // Always ensure loading overlay is hidden when starting to process data
+  if (loadingOverlay) loadingOverlay.style.display = "none";
+  
+  if (!tbody) return;
+  
+  try {
+    // Filter the data
+    const filteredData = allAdminData.filter(row => {
+      // Filter by name (case-insensitive partial match)
+      const name = (row.name || '').toString().toLowerCase();
+      if (nameFilter && !name.includes(nameFilter)) return false;
+      
+      // Filter by shift (exact match)
+      const shift = (row.Shift || row.shift || '').toString();
+      if (shiftFilter && shift !== shiftFilter) return false;
+      
+      // Filter by date
+      const timestamp = row.Timestamp || row.timestamp || row.date || '';
+      if (dateFilter && dateFilter !== 'all') {
+        const rowDate = timestamp ? new Date(timestamp) : null;
+        if (!rowDate || !isValidDate(rowDate)) return false;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        switch(dateFilter) {
+          case 'today':
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return rowDate >= today && rowDate < tomorrow;
+            
+          case 'yesterday':
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            return rowDate >= yesterday && rowDate < today;
+            
+          case 'week':
+            const weekStart = new Date(today);
+            weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+            return rowDate >= weekStart;
+            
+          case 'month':
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            return rowDate >= monthStart;
+        }
+      }
+      
+      return true;
+    });
+    
+    // Update total count
+    if (totalCountElement) {
+      totalCountElement.textContent = `(${filteredData.length} of ${allAdminData.length} total)`;
+    }
+    
+    // Display the filtered data
+    displayAdminData(filteredData);
+    
+  } catch (error) {
+    console.error("Error filtering admin data:", error);
+    showError(tbody, "Error filtering data. Please try again.");
+  }
+}
+
+function displayAdminData(data) {
+  const tbody = document.getElementById("adminTableBody");
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  
+  // Always hide loading overlay when we're done
+  if (loadingOverlay) loadingOverlay.style.display = "none";
+  
+  if (!tbody) return;
+  
+  try {
+    tbody.innerHTML = ''; // Clear existing rows
+    
+    if (!data || !data.length) {
+      tbody.innerHTML = "<tr><td colspan='11' style='text-align: center; padding: 20px;'>No submissions found matching your criteria.</td></tr>";
+      return;
+    }
+    
+    // Sort by timestamp (newest first)
+    data.sort((a, b) => {
+      const dateA = new Date(a.Timestamp || a.timestamp || a.date || 0);
+      const dateB = new Date(b.Timestamp || b.timestamp || b.date || 0);
+      return dateB - dateA;
+    });
+    
+    // Constants for truncation
+    const MAX_LINK_LENGTH = 40;
+    const MAX_SEGMENT_LENGTH = 15;
+    
+    data.forEach(row => {
+      // Safely get values with fallbacks for different field name variations
+      const timestamp = row.Timestamp || row.timestamp || row.date || '';
+      const formattedDate = timestamp ? new Date(timestamp).toLocaleString() : 'N/A';
+      const name = row.name || row.Name || 'N/A';
+      const pc = row.PC || row.pc || 'N/A';
+      const yubikey = row.Yubikey || row.yubikey || row.YubiKey || 'N/A';
+      const shift = row.Shift || row.shift || 'N/A';
+      
+      // Handle Segment ID with truncation
+      let segment = row.Segment || row.segment || row['Segment ID'] || 'N/A';
+      let segmentTitle = '';
+      if (segment !== 'N/A' && segment.length > MAX_SEGMENT_LENGTH) {
+        segmentTitle = segment; // Store full segment ID for tooltip
+        segment = segment.substring(0, MAX_SEGMENT_LENGTH - 3) + "...";
+      }
+      
+      const gulp = row.Gulp || row.gulp || row['Gulp Link'] || row.gulpLink || '';
+      const role = row.Role || row.role || 'N/A';
+      const queue = row.Queue || row.queue || 'N/A';
+      const outcome = row.Outcome || row.outcome || row['Final Outcome'] || 'N/A';
+      const reviewedBy = row.ReviewedBy || row.reviewedBy || row['Reviewed By'] || 'N/A';
+      
+      // Truncate Gulp link if it's too long
+      let displayLink = gulp;
+      if (gulp && gulp.length > MAX_LINK_LENGTH) {
+        displayLink = gulp.substring(0, MAX_LINK_LENGTH - 3) + "...";
+      }
+      
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${formattedDate}</td>
+        <td>${name}</td>
+        <td>${pc}</td>
+        <td>${yubikey}</td>
+        <td>${shift}</td>
+        <td${segmentTitle ? ` title="${segmentTitle}"` : ''}>${segment}</td>
+        <td>${gulp ? `<a href="${gulp}" target="_blank" rel="noopener noreferrer" title="${gulp}">${displayLink}</a>` : 'N/A'}</td>
+        <td>${role}</td>
+        <td>${queue}</td>
+        <td>${outcome}</td>
+        <td>${reviewedBy}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    
+  } catch (error) {
+    console.error("Error displaying admin data:", error);
+    showError(tbody, "Error displaying data. Please try again.");
+  }
+}
+
+function clearAdminFilters() {
+  try {
+    // Reset all filter inputs
+    const filterName = document.getElementById("filterName");
+    const filterShift = document.getElementById("filterShift");
+    const filterDate = document.getElementById("filterDate");
+    
+    if (filterName) filterName.value = "";
+    if (filterShift) filterShift.value = "";
+    if (filterDate) filterDate.value = "all";
+    
+    // Clear any error messages
+    const tbody = document.getElementById("adminTableBody");
+    if (tbody) {
+      tbody.innerHTML = "<tr><td colspan='11' style='text-align: center; padding: 20px;'>Loading all submissions...</td></tr>";
+    }
+    
+    // If we have data, reset to show all
+    if (allAdminData.length > 0) {
+      const totalCountElement = document.getElementById("totalCount");
+      if (totalCountElement) {
+        totalCountElement.textContent = `(${allAdminData.length} total)`;
+      }
+      displayAdminData(allAdminData);
+    } else {
+      // Otherwise, reload all data
+      applyAdminFilters();
+    }
+    
+  } catch (error) {
+    console.error("Error clearing filters:", error);
+    showModal("Error clearing filters. Please refresh the page and try again.");
+  }
+}
+
+function loadDashboardData() {
+  const info = JSON.parse(localStorage.getItem('responderInfo') || '{}');
+  if (!info || !info.name) {
+    showModal("Please log in first.");
+    showPanel("loginPanel");
+    return;
+  }
+  try {
+    const tbody = document.getElementById("dashboardTableBody");
+    if (!tbody) {
+      console.error('Could not find dashboard table body');
+      return;
+    }
+    
+    tbody.innerHTML = "<tr><td colspan='7' style='text-align: center; padding: 20px;'>Loading your submissions...</td></tr>";
+    
+    // Show loading overlay
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    if (loadingOverlay) loadingOverlay.style.display = "flex";
+    
+    console.log('Fetching submissions for user:', info.name);
+    
+    google.script.run
+      .withSuccessHandler(data => {
+        console.log('Raw data received from server:', data);
+        if (loadingOverlay) loadingOverlay.style.display = "none";
+        
+        if (!data) {
+          console.error('No data returned from server');
+          tbody.innerHTML = "<tr><td colspan='7' style='text-align: center; padding: 20px; color: #d32f2f;'>Error: No data returned from server.</td></tr>";
+          return;
+        }
+        
+        if (!Array.isArray(data)) {
+          console.error('Expected array but got:', typeof data, data);
+          tbody.innerHTML = "<tr><td colspan='7' style='text-align: center; padding: 20px; color: #d32f2f;'>Error: Invalid data format received.</td></tr>";
+          return;
+        }
+        
+        // Store all data for filtering
+        allDashboardData = data;
+        
+        if (data.length === 0) {
+          console.log('No submissions found for user:', info.name);
+          tbody.innerHTML = "<tr><td colspan='7' style='text-align: center; padding: 20px;'>No submissions found for your account.</td></tr>";
+          return;
+        }
+        
+        // Apply any active filters
+        applyDashboardFilters();
+        
+        console.log('Finished loading dashboard data');
+      })
+      .withFailureHandler(error => {
+        console.error('Error fetching dashboard data:', error);
+        if (loadingOverlay) loadingOverlay.style.display = "none";
+        
+        let errorMessage = 'Error loading your submissions. ';
+        if (error && error.message) {
+          errorMessage += error.message;
+        }
+        
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 20px; color: #d32f2f;">
+              ${errorMessage}
+              <div style="margin-top: 10px;">
+                <button onclick="loadDashboardData()" style="padding: 5px 10px; margin-top: 10px;">
+                  Try Again
+                </button>
+              </div>
+            </td>
+          </tr>`;
+      })
+      .getUserSubmissions(info.name);
+      
+  } catch (error) {
+    console.error('Unexpected error in loadDashboardData:', error);
+    const tbody = document.getElementById("dashboardTableBody");
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 20px; color: #d32f2f;">
+            An unexpected error occurred. Please try again later.
+            <div style="margin-top: 10px;">
+              <button onclick="loadDashboardData()" style="padding: 5px 10px; margin-top: 10px;">
+                Try Again
+              </button>
+            </div>
+          </td>
+        </tr>`;
+    }
+    
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    if (loadingOverlay) loadingOverlay.style.display = "none";
+  }
+}
+
+// Set theme icon on load and initialize dashboard
+window.onload = function() {
+  // Set theme icon
+  document.getElementById('themeIcon').className = document.body.classList.contains('dark') ? 'fas fa-sun' : 'fas fa-moon';
+  
+  // Check if we're on the dashboard and load data if needed
+  const currentPanel = document.querySelector('.panel.active-panel');
+  if (currentPanel && currentPanel.id === 'dashboardPanel') {
+    loadDashboardData();
+  }
+  
+  // Add event listener for panel changes
+  document.querySelectorAll('[onclick^="showPanel"]').forEach(button => {
+    const originalOnClick = button.onclick;
+    button.onclick = function() {
+      originalOnClick.call(this);
+      // If dashboard is being shown, load its data
+      if (button.getAttribute('onclick').includes('dashboardPanel')) {
+        setTimeout(loadDashboardData, 100); // Small delay to allow panel to show
+      }
+    };
+  });
+  
+  // Add event listener for "Other" queue selection
+  document.querySelectorAll('input[name="queue"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      document.getElementById('otherQueueContainer').style.display = 
+        (this.value === 'Other') ? 'block' : 'none';
+    });
+  });
+};
+
+google.script.run.withSuccessHandler(function(list) {
+  userList = list;
+  const dropdown = document.getElementById('nameDropdown');
+  list.forEach(user => {
+    const opt = document.createElement('option');
+    opt.value = user.name;
+    opt.textContent = user.name;
+    dropdown.insertBefore(opt, dropdown.querySelector('option[value="other"]'));
+  });
+}).getUserList();
+
+function onNameChange() {
+  const val = document.getElementById('nameDropdown').value;
+  if (val === "other") {
+    document.getElementById('manualFields').style.display = "";
+    document.getElementById('autoFields').style.display = "none";
+  } else if (val) {
+    document.getElementById('manualFields').style.display = "none";
+    document.getElementById('autoFields').style.display = "";
+    const user = userList.find(u => u.name === val);
+    document.getElementById('autoPC').textContent = user.pc;
+    document.getElementById('autoYubikey').textContent = user.yubikey;
+    document.getElementById('autoShift').textContent = user.shift;
+  } else {
+    document.getElementById('manualFields').style.display = "none";
+    document.getElementById('autoFields').style.display = "none";
+  }
+}
+
+function showUserInfo() {
+  const info = JSON.parse(localStorage.getItem('responderInfo') || '{}');
+  document.getElementById('userInfoHeader').innerHTML = `
+    Name: ${info.name}<br>
+    PC: ${info.pc}<br>
+    Yubikey: ${info.yubikey}<br>
+    Shift: ${info.shift}
+  `;
+}
+
+function checkServerConnection() {
+  document.getElementById("loadingOverlay").style.display = "flex";
+  
+  google.script.run
+    .withSuccessHandler(() => {
+      console.log("Server connection successful");
+      document.getElementById("loadingOverlay").style.display = "none";
+    })
+    .withFailureHandler(error => {
+      console.error("Server connection failed:", error);
+      document.getElementById("loadingOverlay").style.display = "none";
+      showModal("Unable to connect to the server. Please check your internet connection and try again.");
+    })
+    .doGet();
+}
+
+// Dashboard filter functions
+function applyDashboardFilters() {
+  try {
+    const filterValue = document.getElementById('dashboardDateFilter').value;
+    const tbody = document.getElementById("dashboardTableBody");
+    
+    if (!allDashboardData || allDashboardData.length === 0) {
+      console.log('No data available to filter');
+      return;
+    }
+    
+    let filteredData = [...allDashboardData];
+    
+    // Apply date filter
+    if (filterValue !== 'all') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      filteredData = filteredData.filter(item => {
+        try {
+          if (!item.date && !item.Date && !item.Timestamp) return false;
+          
+          const itemDate = new Date(item.date || item.Date || item.Timestamp);
+          if (isNaN(itemDate.getTime())) return false;
+          
+          itemDate.setHours(0, 0, 0, 0);
+          
+          switch(filterValue) {
+            case 'today':
+              return itemDate.getTime() === today.getTime();
+              
+            case 'yesterday':
+              const yesterday = new Date(today);
+              yesterday.setDate(yesterday.getDate() - 1);
+              return itemDate.getTime() === yesterday.getTime();
+              
+            case 'week':
+              const weekStart = new Date(today);
+              weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+              return itemDate >= weekStart;
+              
+            case 'month':
+              const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+              return itemDate >= monthStart;
+              
+            default:
+              return true;
+          }
+        } catch (e) {
+          console.error('Error filtering data:', e);
+          return false;
+        }
+      });
+    }
+    
+    // Update the table with filtered data
+    updateDashboardTable(filteredData);
+    
+  } catch (error) {
+    console.error('Error applying dashboard filters:', error);
+  }
+}
+
+function resetDashboardFilters() {
+  document.getElementById('dashboardDateFilter').value = 'today';
+  if (allDashboardData && allDashboardData.length > 0) {
+    updateDashboardTable(allDashboardData);
+  } else {
+    loadDashboardData();
+  }
+}
+
+function updateDashboardTable(data) {
+  const tbody = document.getElementById("dashboardTableBody");
+  if (!tbody) return;
+  
+  tbody.innerHTML = "";
+  
+  if (!data || data.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='7' style='text-align: center; padding: 20px;'>No submissions found matching your criteria.</td></tr>";
+    // Update count to show 0 when no results
+    const countElement = document.getElementById("submissionCount");
+    if (countElement) countElement.textContent = "(0)";
+    return;
+  }
+  
+  // Update submission count with filtered results
+  const countElement = document.getElementById("submissionCount");
+  if (countElement) {
+    countElement.textContent = `(${data.length})`;
+  }
+  
+  // Add rows to the table
+  data.forEach(row => {
+    const name = row.name || row.Name || '';
+    const segment = row.segment || row.Segment || row['Segment ID'] || '';
+    const gulp = row.gulp || row.Gulp || row['Gulp Link'] || '';
+    const role = row.role || row.Role || '';
+    const outcome = row.outcome || row.Outcome || row['Final Outcome'] || '';
+    const reviewedBy = row.reviewedBy || row.ReviewedBy || row['Reviewed By'] || '';
+    const date = row.date || row.Date || row.Timestamp || row.time || '';
+    
+    // Format date if it exists
+    let formattedDate = '';
+    if (date) {
+      try {
+        const dateObj = new Date(date);
+        if (!isNaN(dateObj.getTime())) {
+          formattedDate = dateObj.toLocaleString();
+        } else {
+          formattedDate = date.toString();
+        }
+      } catch (e) {
+        console.error('Error formatting date:', e);
+        formattedDate = date.toString();
+      }
+    }
+    
+    // Truncate Gulp link if it's too long
+    const MAX_LINK_LENGTH = 30;
+    let displayLink = gulp;
+    if (gulp && gulp.length > MAX_LINK_LENGTH) {
+      displayLink = gulp.substring(0, MAX_LINK_LENGTH - 3) + "...";
+    }
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${name}</td>
+      <td>${segment}</td>
+      <td>${gulp ? `<a href="${gulp}" target="_blank" title="${gulp}">${displayLink}</a>` : 'N/A'}</td>
+      <td>${role || 'N/A'}</td>
+      <td>${outcome || 'N/A'}</td>
+      <td>${reviewedBy || 'N/A'}</td>
+      <td>${formattedDate || 'N/A'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Call this when the page loads
+window.addEventListener('load', checkServerConnection);
+
+// Helper function to check if a date is valid
+function isValidDate(d) {
+  return d instanceof Date && !isNaN(d);
+}
+
+// Helper function to show error messages
+function showError(element, message) {
+  if (!element) return;
+  element.innerHTML = `<tr><td colspan='11' style='color: #d32f2f; text-align: center; padding: 20px;'>${message}</td></tr>`;
+}
+
+// Helper function to get error message from error object
+function getErrorMessage(error) {
+  if (!error) return "An unknown error occurred.";
+  if (error.message) return error.message;
+  if (typeof error === 'string') return error;
+  return JSON.stringify(error);
+}
+
+// ==============================================
+// === Top Performers Functions =================
+// ==============================================
+
+// Top Performers data is now defined at the top of the script
+
+// Function to load Top Performers data
+async function loadTopPerformersData() {
+  const tbody = document.getElementById('topPerformersTableBody');
+  const countElement = document.getElementById('performersCount');
+  
+  if (!tbody) return;
+  
+  // Show loading state
+  tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 20px;">Loading data from Google Sheets...</td></tr>';
+  
+  try {
+    // Fetch real data from Google Sheets
+    const realData = await fetchLookerStudioData();
+    
+    console.log('Fetched data:', realData); // Debug log
+    
+    if (realData && realData.length > 0 && realData !== topPerformersData) {
+      // Update count
+      if (countElement) {
+        countElement.textContent = `(${realData.length})`;
+      }
+      
+      // Clear existing data
+      tbody.innerHTML = '';
+      
+      // Sort data by score (highest first)
+      const sortedData = [...realData].sort((a, b) => b.score - a.score);
+      
+      // Add data rows
+      sortedData.forEach((performer, index) => {
+        const row = document.createElement('tr');
+        
+        // Determine score class for styling
+        let scoreClass = '';
+        if (performer.score >= 85) {
+          scoreClass = 'score-high';
+        } else if (performer.score >= 70) {
+          scoreClass = 'score-medium';
+        } else {
+          scoreClass = 'score-low';
+        }
+        
+        // Add rank indicator for top 3
+        let rankIndicator = '';
+        if (index < 3) {
+          const medals = ['🥇', '🥈', '🥉'];
+          rankIndicator = `${medals[index]} `;
+        }
+        
+        row.innerHTML = `
+          <td>${rankIndicator}${performer.labeler}</td>
+          <td>${Math.round(performer.tasks)}</td>
+          <td>${Math.round(performer.labels)}</td>
+          <td>${performer.tp}</td>
+          <td>${performer.tn}</td>
+          <td>${performer.fp}</td>
+          <td>${performer.fn}</td>
+          <td>${(performer.precision * 100).toFixed(1)}%</td>
+          <td>${(performer.recall * 100).toFixed(1)}%</td>
+          <td>${(performer.accuracy * 100).toFixed(1)}%</td>
+          <td class="${scoreClass}">${(performer.score * 100).toFixed(1)}%</td>
+        `;
+        tbody.appendChild(row);
+      });
+    } else {
+      // Show error message instead of falling back to sample data
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="11" style="text-align: center; padding: 20px; color: #f44336;">
+            <strong>❌ لم يتم العثور على بيانات حقيقية من Google Sheet</strong><br>
+            <small>يرجى التحقق من الاتصال أو تحديث البيانات</small>
+          </td>
+        </tr>
+      `;
+      
+      if (countElement) {
+        countElement.textContent = '(0)';
+      }
+    }
+    
+    // Update last update time
+    updateLastUpdateTime();
+    
+  } catch (error) {
+    console.error('Error loading data:', error);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="11" style="text-align: center; padding: 20px; color: #f44336;">
+          <strong>❌ خطأ في تحميل البيانات</strong><br>
+          <small>${error.message}</small>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// Function to search for employee
+function searchEmployee() {
+  const searchTerm = document.getElementById('employeeSearch').value.toLowerCase();
+  const rows = document.querySelectorAll('#topPerformersTableBody tr');
+  let foundCount = 0;
+  
+  rows.forEach(row => {
+    const employeeName = row.cells[0].textContent.toLowerCase();
+    if (employeeName.includes(searchTerm)) {
+      row.style.display = '';
+      row.classList.add('search-highlight');
+      foundCount++;
+    } else {
+      row.style.display = 'none';
+      row.classList.remove('search-highlight');
+    }
+  });
+  
+  // Update count to show filtered results
+  const countElement = document.getElementById('performersCount');
+  if (countElement) {
+    if (searchTerm) {
+      countElement.textContent = `(${foundCount} of ${topPerformersData.length})`;
+    } else {
+      countElement.textContent = `(${topPerformersData.length})`;
+    }
+  }
+  
+  // Show message if no results found
+  if (searchTerm && foundCount === 0) {
+    const tbody = document.getElementById('topPerformersTableBody');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 20px; color: #666;">No employees found matching your search.</td></tr>';
+    }
+  }
+}
+
+// Function to clear search
+function clearSearch() {
+  document.getElementById('employeeSearch').value = '';
+  const rows = document.querySelectorAll('#topPerformersTableBody tr');
+  
+  rows.forEach(row => {
+    row.style.display = '';
+    row.classList.remove('search-highlight');
+  });
+  
+  // Reset count
+  const countElement = document.getElementById('performersCount');
+  if (countElement) {
+    countElement.textContent = `(${topPerformersData.length})`;
+  }
+  
+  // Reload data to show all rows
+  loadTopPerformersData();
+}
+
+// Function to refresh Top Performers data
+function refreshTopPerformersData() {
+  // Show loading state
+  const tbody = document.getElementById('topPerformersTableBody');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 20px;">Refreshing data...</td></tr>';
+  }
+  
+  // Simulate API call to Looker Studio (replace with actual implementation)
+  setTimeout(() => {
+    // Here you would make an actual API call to Looker Studio
+    // For now, we'll just reload the sample data
+    loadTopPerformersData();
+    
+    // Show success message
+    showModal('Data refreshed successfully!');
+  }, 1000);
+}
+
+// Function to update last update time
+function updateLastUpdateTime() {
+  const lastUpdateElement = document.getElementById('lastUpdateTime');
+  if (lastUpdateElement) {
+    const now = new Date();
+    lastUpdateElement.textContent = now.toLocaleString();
+  }
+}
+
+// Function to fetch data from Looker Studio (real implementation)
+async function fetchLookerStudioData() {
+  try {
+    // Method 1: Fetch from Google Apps Script Web App
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbyjlGj1aerYdT2TOUH2kAKccXUAXWq8wY9et6YuW0grXJJUbCHwRMHJBdjqg__3EAeK/exec';
+    
+    console.log('Fetching from Google Apps Script:', scriptUrl);
+    const response = await fetch(scriptUrl);
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data && result.data.length > 0) {
+        console.log('Data fetched from Google Apps Script:', result.data.length, 'records');
+        return result.data;
+      }
+    }
+    
+    // Method 2: Fetch from Google Sheets API (fallback)
+    const apiKey = 'AIzaSyAoxLR9R8ucSLsXO1Y1XuDUUABQj5aqS2E';
+    const spreadsheetId = '1rIUbQEzohNQ34LLU3RVqequ-sq2Bwm3c_g8ra1Aoh98';
+    
+    try {
+      // Use the correct sheet name "TopPerformers"
+      const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/TopPerformers?key=${apiKey}`;
+        
+      console.log('Fetching from Google Sheets:', sheetsUrl);
+      const sheetsResponse = await fetch(sheetsUrl);
+      
+      if (sheetsResponse.ok) {
+        const sheetsData = await sheetsResponse.json();
+        if (sheetsData.values && sheetsData.values.length > 1) {
+          const data = convertSheetsDataToStructured(sheetsData.values);
+          console.log('Data fetched from Google Sheets:', data.length, 'records');
+          if (data.length > 0) {
+            return data;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching from Google Sheets:', error);
+    }
+    
+    // Method 3: Return null instead of sample data
+    console.log('No real data found, returning null');
+    return null;
+    
+  } catch (error) {
+    console.error('Error fetching data from Looker Studio:', error);
+    return null; // Return null instead of sample data
+  }
+}
+
+// Function to convert Google Sheets data to structured format
+function convertSheetsDataToStructured(sheetsData) {
+  const structuredData = [];
+  
+  console.log('Raw sheets data:', sheetsData);
+  
+  // Skip header row (index 0)
+  for (let i = 1; i < sheetsData.length; i++) {
+    const row = sheetsData[i];
+    console.log(`Processing row ${i}:`, row);
+    
+    // Check if row has at least 11 columns and has a labeler
+    if (row.length >= 11 && row[0] && row[0].trim() !== '') {
+      const performer = {
+        labeler: row[0] || '',
+        tasks: parseFloat(row[1]) || 0,
+        labels: parseFloat(row[2]) || 0,
+        tp: parseInt(row[3]) || 0,
+        tn: parseInt(row[4]) || 0,
+        fp: parseInt(row[5]) || 0,
+        fn: parseInt(row[6]) || 0,
+        precision: parseFloat(row[7]) || 0,
+        recall: parseFloat(row[8]) || 0,
+        accuracy: parseFloat(row[9]) || 0,
+        score: parseFloat(row[10]) || 0
+      };
+      
+      console.log(`Converted performer:`, performer);
+      
+      // Only add if we have valid data
+      if (performer.labeler && performer.labeler.trim() !== '') {
+        structuredData.push(performer);
+      }
+    } else {
+      console.log(`Skipping row ${i}: insufficient columns (${row.length}) or empty labeler`);
+    }
+  }
+  
+  console.log('Final converted data:', structuredData);
+  return structuredData;
+}
+
+// Add event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Add event listener for search input
+  const searchInput = document.getElementById('employeeSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      if (this.value.trim() === '') {
+        clearSearch();
+      } else {
+        searchEmployee();
+      }
+    });
+    
+    // Add Enter key support
+    searchInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchEmployee();
+      }
+    });
+  }
+});
+
+const wave = document.getElementById('wave');
+  const spans = wave.querySelectorAll('span');
+
+  document.addEventListener('mousemove', (e) => {
+    const centerX = window.innerWidth / 2;
+    const percent = (e.clientX - centerX) / centerX; // -1 to 1
+    const offset = percent * 20; // tweak movement strength here
+
+    spans.forEach(span => {
+      span.style.setProperty('--x', `${-50 + offset}%`);
+    });
+  });
+
+</script>
+ <div class="wave" id="wave">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</body>
+</html>
